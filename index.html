@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadenzio</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; text-align: center; }
+        #map { width: 100%; height: 500px; margin-top: 10px; }
+        #controls { margin: 10px 0; }
+        #recordingControls { margin: 10px 0; }    
+    </style>
+    <link rel="manifest" href="manifest.json">
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/service-worker.js')
+                .then(() => console.log("Service Worker Registered"));
+        }
+    </script>
+    
+</head>
+<body>
+    <h1>Cadenzio</h1>
+
+    <div id="controls">
+        <label for="scaleSelect">Choose a Musical Scale:</label>
+        <select id="scaleSelect">
+            <option value="C_Major">C Major</option>
+            <option value="D_Minor">D Minor</option>
+            <option value="Blues">Blues Scale</option>
+        </select>
+
+        <label for="instrumentSelect">Choose an Instrument:</label>
+        <select id="instrumentSelect">
+            <option value="synth">Synth</option>
+            <option value="piano">Piano</option>
+            <option value="strings">Strings</option>
+        </select>
+    </div>
+
+    <div id="recordingControls">
+        <button id="startRecording">Start Recording</button>
+        <button id="stopRecording" disabled>Stop Recording</button>
+        <button id="downloadRecording" disabled>Download Recording</button>
+    </div>
+
+    <div id="pingControls">
+        <label for="pingRate">Ping Sensitivity (ms):</label>
+        <input type="range" id="pingRate" min="500" max="5000" step="500" value="1000">
+        <span id="pingValue">1000 ms</span>
+    </div>
+    
+
+    <div id="map"></div>
+
+    <script src="script.js"></script>
+</body>
+</html>
