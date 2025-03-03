@@ -1,71 +1,54 @@
-// Wait for user interaction before starting audio
-let synth;
-let instrumentType = "synth";
-let recording = false;
-let recordedNotes = [];
-let pingRate = 1000; // Default ping rate in milliseconds
+document.addEventListener("DOMContentLoaded", function () {
+    // Initialize Swiper (Intro Carousel)
+    new Swiper('.swiper-container', {
+        loop: true,
+        pagination: { el: '.swiper-pagination' }
+    });
 
-document.addEventListener("click", () => {
-    if (!synth) {
-        Tone.start();
-        synth = new Tone.Synth().toDestination();
-        console.log("AudioContext started!");
-    }
-});
+    // Track sensitivity slider
+    document.getElementById("pingRate").addEventListener("input", function (event) {
+        document.getElementById("pingValue").innerText = `${event.target.value} ms`;
+    });
 
-// Initialize the map
-document.addEventListener("DOMContentLoaded", function() {
+    // Sign-In Button Placeholder
+    document.getElementById("signInBtn").addEventListener("click", function () {
+        alert("SSO feature coming soon!");
+    });
+
+    // Leaflet Map Initialization
     var map = L.map('map').setView([51.505, -0.09], 13);
-
-    // Load OpenStreetMap tiles
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
 
-    // Define musical scales
-    const scales = {
-        "C_Major": ["C4", "D4", "E4", "F4", "G4", "A4", "B4"],
-        "D_Minor": ["D4", "E4", "F4", "G4", "A4", "Bb4", "C5"],
-        "Blues": ["C4", "Eb4", "F4", "Gb4", "G4", "Bb4"]
-    };
-
-    let selectedScale = scales["C_Major"];
-
-    // Function to update scale when user selects a new one
-    document.getElementById("scaleSelect").addEventListener("change", function(event) {
-        selectedScale = scales[event.target.value];
-        console.log(`Scale changed to: ${event.target.value}`);
-    });
-
-    // Function to update instrument when user selects a new one
-    document.getElementById("instrumentSelect").addEventListener("change", function(event) {
-        instrumentType = event.target.value;
-        setupInstrument();
-        console.log(`Instrument changed to: ${instrumentType}`);
-    });
+    // Track Movement & Music Generation
+    let synth;
+    let instrumentType = "synth";
+    let recording = false;
+    let recordedNotes = [];
+    let pingRate = 1000;
 
     function setupInstrument() {
         switch (instrumentType) {
             case "piano":
                 synth = new Tone.Sampler({
-                    urls: { C4: "https://cdn.jsdelivr.net/gh/gleitz/midi-js-soundfonts@gh-pages/FluidR3_GM/acoustic_grand_piano-mp3/C4.mp3" }
+                    urls: { C4: "sounds/C4_piano.mp3" }
                 }).toDestination();
                 break;
             case "strings":
                 synth = new Tone.Sampler({
-                    urls: { C4: "https://cdn.jsdelivr.net/gh/gleitz/midi-js-soundfonts@gh-pages/FluidR3_GM/string_ensemble_1-mp3/C4.mp3" }
+                    urls: { C4: "sounds/C4_strings.mp3" }
                 }).toDestination();
                 break;
             default:
                 synth = new Tone.Synth().toDestination();
         }
     }
-
-    setupInstrument(); // Initialize default instrument
+    setupInstrument();
 
     var userPath = [];
-    var userMarker = null;
     var polyline = L.polyline([], { color: 'blue' }).addTo(map);
+    var userMarker = null;
     var lastDirection = null;
 
     function getDirection(lat1, lon1, lat2, lon2) {
@@ -76,38 +59,34 @@ document.addEventListener("DOMContentLoaded", function() {
 
     function playNoteFromDirection(direction) {
         if (!synth) return;
-        let index = Math.floor((direction + 180) / (360 / selectedScale.length)) % selectedScale.length;
-        let note = selectedScale[index];
+        let index = Math.floor((direction + 180) / 60) % 7;
+        let scale = ["C4", "D4", "E4", "F4", "G4", "A4", "B4"];
+        let note = scale[index];
 
         console.log(`Playing note: ${note}`);
         synth.triggerAttackRelease(note, "8n");
-
-        if (recording) {
-            recordedNotes.push({ note, time: Tone.now() });
-        }
+        if (recording) recordedNotes.push({ note, time: Tone.now() });
     }
 
     function updateLocation(position) {
         var lat = position.coords.latitude;
         var lon = position.coords.longitude;
-
+        
         if (userPath.length > 0) {
             let prevLat = userPath[userPath.length - 1][0];
             let prevLon = userPath[userPath.length - 1][1];
             let direction = getDirection(prevLat, prevLon, lat, lon);
             playNoteFromDirection(direction);
         }
-
+        
         userPath.push([lat, lon]);
         polyline.setLatLngs(userPath);
 
         if (!userMarker) {
-            userMarker = L.marker([lat, lon]).addTo(map)
-                .bindPopup("You are here").openPopup();
+            userMarker = L.marker([lat, lon]).addTo(map).bindPopup("You are here").openPopup();
         } else {
             userMarker.setLatLng([lat, lon]);
         }
-
         map.setView([lat, lon], 16);
     }
 
@@ -125,38 +104,44 @@ document.addEventListener("DOMContentLoaded", function() {
             alert("Geolocation is not supported by your browser.");
         }
     }
-
-    document.getElementById("pingRate").addEventListener("input", function(event) {
-        pingRate = parseInt(event.target.value);
-        document.getElementById("pingValue").innerText = `${pingRate} ms`;
-        startGPSUpdates();
-        console.log(`Ping rate updated to: ${pingRate} ms`);
-    });
-
     startGPSUpdates();
 
-    document.getElementById("startRecording").addEventListener("click", function() {
+    // Track Recording Controls
+    document.getElementById("startTracking").addEventListener("click", function () {
         recording = true;
         recordedNotes = [];
-        document.getElementById("stopRecording").disabled = false;
-        document.getElementById("startRecording").disabled = true;
+        document.getElementById("stopTracking").disabled = false;
+        document.getElementById("startTracking").disabled = true;
     });
 
-    document.getElementById("stopRecording").addEventListener("click", function() {
+    document.getElementById("stopTracking").addEventListener("click", function () {
         recording = false;
-        document.getElementById("stopRecording").disabled = true;
-        document.getElementById("downloadRecording").disabled = false;
-        document.getElementById("startRecording").disabled = false;
+        document.getElementById("stopTracking").disabled = true;
+        document.getElementById("startTracking").disabled = false;
     });
 
-    document.getElementById("downloadRecording").addEventListener("click", function() {
-        const midi = new Uint8Array([0x4D, 0x54, 0x68, 0x64]);
-        const blob = new Blob([midi], { type: "audio/midi" });
-        const link = document.createElement("a");
-        link.href = URL.createObjectURL(blob);
-        link.download = "music.mid";
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+    document.getElementById("saveTrack").addEventListener("click", function () {
+        let trackData = { date: new Date().toLocaleString(), path: userPath };
+        let savedTracks = JSON.parse(localStorage.getItem("savedTracks")) || [];
+        savedTracks.push(trackData);
+        localStorage.setItem("savedTracks", JSON.stringify(savedTracks));
+        loadSavedTracks();
+    });
+
+    function loadSavedTracks() {
+        let savedList = document.getElementById("savedTracks");
+        savedList.innerHTML = "";
+        let savedTracks = JSON.parse(localStorage.getItem("savedTracks")) || [];
+        savedTracks.forEach((track, index) => {
+            let li = document.createElement("li");
+            li.innerHTML = `Track ${index + 1} - ${track.date}`;
+            savedList.appendChild(li);
+        });
+    }
+    loadSavedTracks();
+
+    document.getElementById("clearTracks").addEventListener("click", function () {
+        localStorage.removeItem("savedTracks");
+        loadSavedTracks();
     });
 });
