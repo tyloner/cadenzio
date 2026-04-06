@@ -1,0 +1,15 @@
+{
+  "name": "Cadenz.io",
+  "short_name": "Cadenz",
+  "description": "Your walk, your music. Compose music while you move.",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#F8FAFC",
+  "theme_color": "#14B8A6",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "/api/icon/192", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/api/icon/512", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ],
+  "categories": ["music", "fitness", "lifestyle"]
+}

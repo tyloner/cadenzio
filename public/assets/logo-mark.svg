@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" fill="none">
+  <!-- Path resolving into note glyph (icon only) -->
+  <path d="M6 34 C6 34 10 22 14 20 C18 18 20 24 24 22 C28 20 30 14 32 10" stroke="#14B8A6" stroke-width="3" stroke-linecap="round" fill="none"/>
+  <circle cx="32" cy="10" r="4" fill="#14B8A6"/>
+  <line x1="36" y1="10" x2="36" y2="26" stroke="#14B8A6" stroke-width="2.5" stroke-linecap="round"/>
+</svg>

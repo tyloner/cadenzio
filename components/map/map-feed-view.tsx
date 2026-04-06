@@ -1,0 +1,113 @@
+"use client"
+
+import { useState } from "react"
+import dynamic from "next/dynamic"
+import Link from "next/link"
+import { Map, List, Music2, Timer } from "lucide-react"
+import { formatDuration, formatDistance, timeAgo } from "@/lib/utils"
+
+const FeedMap = dynamic(() => import("./feed-map"), { ssr: false })
+
+interface Activity {
+  id: string
+  title: string
+  startedAt: Date
+  durationSec: number | null
+  distanceM: number | null
+  gpsTrack: unknown
+  user: { name: string | null; image: string | null }
+  composition: { genre: string } | null
+  _count: { likes: number }
+}
+
+const GENRE_COLORS: Record<string, string> = {
+  blues: "bg-blue-100 text-blue-700",
+  classical: "bg-purple-100 text-purple-700",
+  jazz: "bg-amber-100 text-amber-700",
+  ambient: "bg-teal-100 text-teal-700",
+  electronic: "bg-pink-100 text-pink-700",
+}
+
+export function MapFeedView({ activities, units = "metric" }: { activities: Activity[]; currentUserId: string | null; units?: "metric" | "imperial" }) {
+  const [view, setView] = useState<"map" | "list">("map")
+
+  return (
+    <div className="flex flex-col h-[calc(100vh-8rem)]">
+      {/* Toggle bar */}
+      <div className="flex items-center gap-1 px-4 py-3 border-b border-border bg-surface">
+        <button
+          onClick={() => setView("map")}
+          className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+            view === "map" ? "bg-wave text-white" : "text-muted hover:text-ink"
+          }`}
+        >
+          <Map size={14} /> Map
+        </button>
+        <button
+          onClick={() => setView("list")}
+          className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+            view === "list" ? "bg-wave text-white" : "text-muted hover:text-ink"
+          }`}
+        >
+          <List size={14} /> List
+        </button>
+        <span className="ml-auto text-xs text-muted">{activities.length} compositions</span>
+      </div>
+
+      {/* Map view */}
+      {view === "map" && (
+        <div className="flex-1">
+          <FeedMap activities={activities} />
+        </div>
+      )}
+
+      {/* List view */}
+      {view === "list" && (
+        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+          {activities.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 text-center gap-3">
+              <Music2 size={32} className="text-wave/40" />
+              <p className="text-muted text-sm">No public compositions yet.</p>
+              <Link href="/record" className="text-wave text-sm font-medium hover:underline">
+                Be the first →
+              </Link>
+            </div>
+          ) : (
+            activities.map((a) => {
+              const genreClass = GENRE_COLORS[a.composition?.genre ?? ""] ?? "bg-gray-100 text-gray-600"
+              const track = a.gpsTrack as { lat: number; lng: number }[]
+              return (
+                <Link key={a.id} href={`/activity/${a.id}`}>
+                  <div className="bg-surface border border-border rounded-2xl p-4 hover:border-wave/40 transition-colors">
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div>
+                        <p className="font-semibold text-ink text-sm">{a.title}</p>
+                        <p className="text-xs text-muted">{a.user.name} · {timeAgo(a.startedAt)}</p>
+                      </div>
+                      {a.composition && (
+                        <span className={`shrink-0 text-xs font-medium px-2 py-0.5 rounded-full capitalize ${genreClass}`}>
+                          {a.composition.genre}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex gap-4 text-xs text-muted">
+                      {a.durationSec && (
+                        <span className="flex items-center gap-1"><Timer size={11} />{formatDuration(a.durationSec)}</span>
+                      )}
+                      {a.distanceM && (
+                        <span>{formatDistance(a.distanceM, units)}</span>
+                      )}
+                      {track?.length > 0 && (
+                        <span className="text-wave">{track.length} clefs</span>
+                      )}
+                    </div>
+                  </div>
+                </Link>
+              )
+            })
+          )}
+        </div>
+      )}
+    </div>
+  )
+}

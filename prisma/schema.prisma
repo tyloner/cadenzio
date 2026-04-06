@@ -1,0 +1,252 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ─── NextAuth Adapter Models ────────────────────────────────────────────────
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ─── Core User ─────────────────────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime  @default(now())
+
+  accounts         Account[]
+  sessions         Session[]
+  profile          Profile?
+  activities       Activity[]
+  compositions     Composition[]
+  subscription     Subscription?
+  stravaConnection StravaConnection?
+  following        Follow[]          @relation("follower")
+  followers        Follow[]          @relation("following")
+  likes                  Like[]
+  comments               Comment[]
+  gdprConsent            GdprConsent?
+  notificationsReceived  Notification[] @relation("NotifRecipient")
+  notificationsSent      Notification[] @relation("NotifActor")
+}
+
+// ─── Profile ───────────────────────────────────────────────────────────────
+
+model Profile {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  username         String   @unique
+  bio              String?
+  country          String?
+  musicalInterests String[] @default([])
+  styleTags        String[] @default([])
+  personaName      String?
+  badges           String[] @default([])
+  totalActivities  Int      @default(0)
+  totalDistance    Float    @default(0)
+  units            String   @default("metric") // "metric" | "imperial"
+  isPublic         Boolean  @default(true)
+  onboardingDone   Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ─── Activity ──────────────────────────────────────────────────────────────
+
+model Activity {
+  id          String         @id @default(cuid())
+  userId      String
+  title       String         @default("Untitled Walk")
+  startedAt   DateTime
+  endedAt     DateTime?
+  durationSec Int?
+  distanceM   Float?
+  gpsTrack    Json           // [{ lat, lng, bearing, speed, timestamp }]
+  isPublic    Boolean        @default(true)
+  source      ActivitySource @default(CADENZ)
+  stravaId    String?        @unique
+  createdAt   DateTime       @default(now())
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  composition   Composition?
+  likes         Like[]
+  comments      Comment[]
+  notifications Notification[]
+}
+
+enum ActivitySource {
+  CADENZ
+  STRAVA
+}
+
+// ─── Composition ───────────────────────────────────────────────────────────
+
+model Composition {
+  id           String   @id @default(cuid())
+  activityId   String   @unique
+  userId       String
+  startingNote String   @default("C4")
+  scale        String   @default("major")
+  genre        String   @default("classical")
+  instrument   String   @default("piano")
+  bpmAvg       Float?
+  midiEvents   Json     // [{ note, duration, time, velocity }]
+  audioUrl     String?  // Supabase Storage URL
+  durationSec  Int?
+  createdAt    DateTime @default(now())
+
+  activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ─── Subscription ──────────────────────────────────────────────────────────
+
+model Subscription {
+  id               String           @id @default(cuid())
+  userId           String           @unique
+  stripeCustomerId String           @unique
+  stripeSubId      String?          @unique
+  tier             SubscriptionTier @default(FREE)
+  status           String           @default("inactive")
+  currentPeriodEnd DateTime?
+  cancelAtPeriodEnd Boolean         @default(false)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum SubscriptionTier {
+  FREE
+  PRO
+}
+
+// ─── Strava ────────────────────────────────────────────────────────────────
+
+model StravaConnection {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  athleteId    String   @unique
+  accessToken  String
+  refreshToken String
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ─── Social ────────────────────────────────────────────────────────────────
+
+model Follow {
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+
+  follower  User @relation("follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@id([followerId, followingId])
+}
+
+model Like {
+  id         String   @id @default(cuid())
+  userId     String
+  activityId String
+  createdAt  DateTime @default(now())
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, activityId])
+}
+
+model Comment {
+  id         String   @id @default(cuid())
+  userId     String
+  activityId String
+  body       String
+  createdAt  DateTime @default(now())
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+}
+
+// ─── Notifications ─────────────────────────────────────────────────────────
+
+model Notification {
+  id         String           @id @default(cuid())
+  userId     String           // recipient
+  actorId    String           // who triggered it
+  type       NotificationType
+  activityId String?
+  body       String?          // comment snippet
+  isRead     Boolean          @default(false)
+  createdAt  DateTime         @default(now())
+
+  user     User      @relation("NotifRecipient", fields: [userId], references: [id], onDelete: Cascade)
+  actor    User      @relation("NotifActor",     fields: [actorId], references: [id], onDelete: Cascade)
+  activity Activity? @relation(fields: [activityId], references: [id], onDelete: SetNull)
+
+  @@unique([actorId, type, activityId])
+}
+
+enum NotificationType {
+  LIKE
+  COMMENT
+  FOLLOW
+}
+
+// ─── GDPR ──────────────────────────────────────────────────────────────────
+
+model GdprConsent {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  analytics   Boolean  @default(false)
+  marketing   Boolean  @default(false)
+  consentedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
