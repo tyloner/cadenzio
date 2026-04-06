@@ -8,5 +8,20 @@ export const STRIPE_PLANS = {
   PRO_ANNUAL: process.env.STRIPE_PRO_ANNUAL_PRICE_ID!,
 }
 
-// Only instantiated by billing/webhook routes — never by UI components
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
+// Lazy singleton — not instantiated at build time, only on first API call
+let _stripe: Stripe | null = null
+export function getStripe(): Stripe {
+  if (!_stripe) {
+    const key = process.env.STRIPE_SECRET_KEY
+    if (!key || !key.startsWith("sk_")) throw new Error("STRIPE_SECRET_KEY is not configured")
+    _stripe = new Stripe(key)
+  }
+  return _stripe
+}
+
+// Back-compat alias so callers can keep using `stripe.xxx` after destructuring
+export const stripe = new Proxy({} as Stripe, {
+  get(_target, prop) {
+    return (getStripe() as unknown as Record<string | symbol, unknown>)[prop]
+  },
+})
