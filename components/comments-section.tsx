@@ -23,12 +23,20 @@ export function CommentsSection({ activityId, currentUserId, initialCount }: Pro
   const [open, setOpen] = useState(false)
   const [body, setBody] = useState("")
   const [posting, setPosting] = useState(false)
+  const [postError, setPostError] = useState<string | null>(null)
   const [count, setCount] = useState(initialCount)
+  const [loadError, setLoadError] = useState(false)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
   async function loadComments() {
-    const res = await fetch(`/api/activities/${activityId}/comments`)
-    if (res.ok) setComments(await res.json())
+    setLoadError(false)
+    try {
+      const res = await fetch(`/api/activities/${activityId}/comments`)
+      if (res.ok) setComments(await res.json())
+      else setLoadError(true)
+    } catch {
+      setLoadError(true)
+    }
   }
 
   function toggle() {
@@ -40,16 +48,23 @@ export function CommentsSection({ activityId, currentUserId, initialCount }: Pro
     e.preventDefault()
     if (!body.trim() || posting) return
     setPosting(true)
-    const res = await fetch(`/api/activities/${activityId}/comments`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ body }),
-    })
-    if (res.ok) {
-      const comment = await res.json()
-      setComments((prev) => [...prev, comment])
-      setCount((c) => c + 1)
-      setBody("")
+    setPostError(null)
+    try {
+      const res = await fetch(`/api/activities/${activityId}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body }),
+      })
+      if (res.ok) {
+        const comment = await res.json()
+        setComments((prev) => [...prev, comment])
+        setCount((c) => c + 1)
+        setBody("")
+      } else {
+        setPostError("Failed to post comment. Try again.")
+      }
+    } catch {
+      setPostError("Network error. Check your connection.")
     }
     setPosting(false)
   }
@@ -72,7 +87,9 @@ export function CommentsSection({ activityId, currentUserId, initialCount }: Pro
       {open && (
         <div className="px-4 pb-4 space-y-4">
           {/* Comment list */}
-          {comments.length === 0 ? (
+          {loadError ? (
+            <p className="text-sm text-beat text-center py-4">Couldn't load comments. <button onClick={loadComments} className="underline hover:text-beat/70">Retry</button></p>
+          ) : comments.length === 0 ? (
             <p className="text-sm text-muted text-center py-4">Be the first to comment.</p>
           ) : (
             <ul className="space-y-3">
@@ -99,7 +116,11 @@ export function CommentsSection({ activityId, currentUserId, initialCount }: Pro
 
           {/* Input */}
           {currentUserId && (
-            <form onSubmit={submit} className="flex gap-2 pt-1">
+            <form onSubmit={submit} className="flex flex-col gap-1.5 pt-1">
+            {postError && (
+              <p className="text-xs text-beat px-1">{postError}</p>
+            )}
+            <div className="flex gap-2">
               <textarea
                 ref={inputRef}
                 value={body}
@@ -119,6 +140,7 @@ export function CommentsSection({ activityId, currentUserId, initialCount }: Pro
               >
                 <Send size={14} />
               </button>
+            </div>
             </form>
           )}
         </div>

@@ -53,7 +53,9 @@ export function ActivityDetail({ activity, currentUserId, isLiked: initialLiked,
 
   const [liked, setLiked] = useState(initialLiked)
   const [likeCount, setLikeCount] = useState(activity._count.likes)
+  const [liking, setLiking] = useState(false)
   const [mapProgress, setMapProgress] = useState<number | undefined>(undefined)
+  const [titleError, setTitleError] = useState<string | null>(null)
 
   // Owner: title editing
   const [title, setTitle] = useState(activity.title)
@@ -70,10 +72,24 @@ export function ActivityDetail({ activity, currentUserId, isLiked: initialLiked,
   const [deleting, setDeleting] = useState(false)
 
   async function toggleLike() {
+    if (liking) return
     const next = !liked
     setLiked(next)
     setLikeCount((c) => (next ? c + 1 : c - 1))
-    await fetch(`/api/activities/${activity.id}/like`, { method: next ? "POST" : "DELETE" })
+    setLiking(true)
+    try {
+      const res = await fetch(`/api/activities/${activity.id}/like`, { method: next ? "POST" : "DELETE" })
+      if (!res.ok) {
+        // Revert optimistic update on failure
+        setLiked(!next)
+        setLikeCount((c) => (next ? c - 1 : c + 1))
+      }
+    } catch {
+      setLiked(!next)
+      setLikeCount((c) => (next ? c - 1 : c + 1))
+    } finally {
+      setLiking(false)
+    }
   }
 
   function startEditTitle() {
@@ -85,13 +101,22 @@ export function ActivityDetail({ activity, currentUserId, isLiked: initialLiked,
   async function saveTitle() {
     const trimmed = titleDraft.trim()
     if (!trimmed || trimmed === title) { setEditingTitle(false); return }
-    const res = await fetch(`/api/activities/${activity.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: trimmed }),
-    })
-    if (res.ok) setTitle(trimmed)
-    setEditingTitle(false)
+    setTitleError(null)
+    try {
+      const res = await fetch(`/api/activities/${activity.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: trimmed }),
+      })
+      if (res.ok) {
+        setTitle(trimmed)
+        setEditingTitle(false)
+      } else {
+        setTitleError("Failed to save. Try again.")
+      }
+    } catch {
+      setTitleError("Network error. Check your connection.")
+    }
   }
 
   async function toggleVisibility() {
@@ -146,21 +171,24 @@ export function ActivityDetail({ activity, currentUserId, isLiked: initialLiked,
 
         {/* Title + owner controls */}
         {editingTitle ? (
-          <div className="flex items-center gap-2 mb-4">
-            <input
-              ref={titleInputRef}
-              value={titleDraft}
-              onChange={(e) => setTitleDraft(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") saveTitle(); if (e.key === "Escape") setEditingTitle(false) }}
-              maxLength={100}
-              className="flex-1 text-xl font-bold text-ink bg-mist rounded-lg px-3 py-1 outline-none border border-wave"
-            />
-            <button onClick={saveTitle} className="text-wave hover:text-wave/70 transition-colors">
-              <Check size={20} />
-            </button>
-            <button onClick={() => setEditingTitle(false)} className="text-muted hover:text-ink transition-colors">
-              <X size={20} />
-            </button>
+          <div className="flex flex-col gap-1 mb-4">
+            <div className="flex items-center gap-2">
+              <input
+                ref={titleInputRef}
+                value={titleDraft}
+                onChange={(e) => { setTitleDraft(e.target.value); setTitleError(null) }}
+                onKeyDown={(e) => { if (e.key === "Enter") saveTitle(); if (e.key === "Escape") { setEditingTitle(false); setTitleError(null) } }}
+                maxLength={100}
+                className="flex-1 text-xl font-bold text-ink bg-mist rounded-lg px-3 py-1 outline-none border border-wave"
+              />
+              <button onClick={saveTitle} className="text-wave hover:text-wave/70 transition-colors">
+                <Check size={20} />
+              </button>
+              <button onClick={() => { setEditingTitle(false); setTitleError(null) }} className="text-muted hover:text-ink transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+            {titleError && <p className="text-xs text-beat px-1">{titleError}</p>}
           </div>
         ) : (
           <div className="flex items-center gap-2 mb-4">
@@ -205,8 +233,9 @@ export function ActivityDetail({ activity, currentUserId, isLiked: initialLiked,
         <div className="flex items-center gap-4 pt-4 border-t border-border">
           <button
             onClick={toggleLike}
-            disabled={!currentUserId}
+            disabled={!currentUserId || liking}
             className="flex items-center gap-2 text-sm font-medium transition-colors disabled:opacity-40"
+            style={{ touchAction: "manipulation" }}
           >
             <Heart size={20} className={liked ? "text-beat fill-beat" : "text-muted"} />
             <span className={liked ? "text-beat" : "text-muted"}>{likeCount}</span>

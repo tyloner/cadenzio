@@ -11,7 +11,7 @@ export async function GET(
   const s = Math.min(Math.max(parseInt(size) || 192, 16), 1024)
   const r = Math.round(s * 0.18) // border-radius
 
-  return new ImageResponse(
+  const img = new ImageResponse(
     (
       <div
         style={{
@@ -47,4 +47,6 @@ export async function GET(
     ),
     { width: s, height: s }
   )
+  img.headers.set("Cache-Control", "public, max-age=31536000, immutable")
+  return img
 }
