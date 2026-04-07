@@ -23,7 +23,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Top bar */}
       <header className="sticky top-0 z-40 bg-surface border-b border-border flex items-center justify-between px-4 h-14">
         <Link href="/dashboard">
-          <Image src="/assets/logo.svg" alt="Cadenz.io" width={100} height={28} priority />
+          <Image src="/assets/logo.svg" alt="Cadenzio" width={100} height={28} priority />
         </Link>
         <NotificationBell />
       </header>

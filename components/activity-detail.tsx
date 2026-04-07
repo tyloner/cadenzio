@@ -253,15 +253,13 @@ export function ActivityDetail({ activity, currentUserId, isLiked: initialLiked,
             </>
           )}
 
-          {!isOwner && (
-            <button
-              onClick={() => navigator.share?.({ title, url: window.location.href })}
-              className="ml-auto flex items-center gap-2 text-sm font-medium text-muted hover:text-ink transition-colors"
-            >
-              <Share2 size={18} />
-              Share
-            </button>
-          )}
+          <button
+            onClick={() => navigator.share?.({ title, url: window.location.href })}
+            className={`flex items-center gap-2 text-sm font-medium text-muted hover:text-wave transition-colors ${isOwner ? "" : "ml-auto"}`}
+          >
+            <Share2 size={18} />
+            Share
+          </button>
         </div>
       </div>
 

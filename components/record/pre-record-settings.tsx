@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Play, Lock } from "lucide-react"
 import { FREE_LIMITS } from "@/lib/constants"
 
-const NOTES = ["C3", "D3", "E3", "F3", "G3", "A3", "B3", "C4", "D4", "E4", "F4", "G4", "A4"]
+const NOTES = ["C2", "C3", "D3", "E3", "F3", "G3", "A3", "B3", "C4", "D4", "E4", "F4", "G4", "A4", "C5"]
 const SCALES = [
   { value: "major",           label: "Major" },
   { value: "natural_minor",   label: "Minor" },
@@ -168,14 +168,14 @@ export function PreRecordSettings({ isPro, onStart }: Props) {
       {/* Free tier info */}
       {!isPro && (
         <div className="bg-beat/10 border border-beat/20 rounded-xl p-4 mb-6 text-sm text-beat">
-          Free tier: recordings limited to {FREE_LIMITS.MAX_RECORDING_SECONDS / 60} minutes.
+          Free tier: up to {FREE_LIMITS.MAX_RECORDING_SECONDS / 60} minutes of recordings combined.
         </div>
       )}
 
       {/* Start */}
       <button
         onClick={() => onStart({ startingNote: note, scale, genre, title: title || "Untitled Walk", instrument })}
-        className="w-full flex items-center justify-center gap-3 bg-beat text-white font-bold rounded-2xl py-4 text-base hover:bg-beat-dark transition-colors shadow-md"
+        className="w-full flex items-center justify-center gap-3 bg-wave text-white font-bold rounded-2xl py-4 text-base hover:bg-wave/80 transition-colors shadow-md"
       >
         <Play size={20} fill="white" />
         Start recording

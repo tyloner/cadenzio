@@ -6,12 +6,15 @@ export const metadata = { title: "Record" }
 
 export default async function RecordPage() {
   const session = await auth()
-  const [subscription, profile] = await Promise.all([
-    db.subscription.findUnique({ where: { userId: session!.user!.id! }, select: { tier: true } }),
-    db.profile.findUnique({ where: { userId: session!.user!.id! }, select: { units: true } }),
+  const userId = session!.user!.id!
+  const [subscription, profile, usedSecondsResult] = await Promise.all([
+    db.subscription.findUnique({ where: { userId }, select: { tier: true } }),
+    db.profile.findUnique({ where: { userId }, select: { units: true } }),
+    db.activity.aggregate({ where: { userId }, _sum: { durationSec: true } }),
   ])
   const isPro = subscription?.tier === "PRO"
   const units = (profile?.units ?? "metric") as "metric" | "imperial"
+  const usedSeconds = usedSecondsResult._sum.durationSec ?? 0
 
-  return <RecordScreen isPro={isPro} userId={session!.user!.id!} units={units} />
+  return <RecordScreen isPro={isPro} userId={userId} units={units} usedSeconds={usedSeconds} />
 }

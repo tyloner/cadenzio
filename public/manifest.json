@@ -1,6 +1,6 @@
 {
-  "name": "Cadenz.io",
-  "short_name": "Cadenz",
+  "name": "Cadenzio",
+  "short_name": "Cadenzio",
   "description": "Your walk, your music. Compose music while you move.",
   "start_url": "/dashboard",
   "display": "standalone",

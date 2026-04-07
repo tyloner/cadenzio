@@ -32,9 +32,13 @@ export async function POST(req: NextRequest) {
   const body = await req.json()
   const { title, gpsTrack, durationSec, distanceM, startingNote, scale, genre, instrument } = body
 
-  // Enforce 30-min cap for free users
-  if (!isPro && durationSec > FREE_LIMITS.MAX_RECORDING_SECONDS) {
-    return NextResponse.json({ error: "Recording exceeds free tier limit" }, { status: 403 })
+  // Enforce 30-min combined cap for free users
+  if (!isPro) {
+    const used = await db.activity.aggregate({ where: { userId }, _sum: { durationSec: true } })
+    const usedSeconds = used._sum.durationSec ?? 0
+    if (usedSeconds + durationSec > FREE_LIMITS.MAX_RECORDING_SECONDS) {
+      return NextResponse.json({ error: "Combined recording time exceeds free tier limit of 30 minutes." }, { status: 403 })
+    }
   }
 
   // Enforce composition count for free users

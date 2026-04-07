@@ -9,7 +9,7 @@ const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] })
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: { default: "Cadenz.io", template: "%s · Cadenz.io" },
+  title: { default: "Cadenzio", template: "%s · Cadenzio" },
   description: "Your walk, your music. Compose music while you move.",
   manifest: "/manifest.json",
   icons: {
@@ -17,8 +17,8 @@ export const metadata: Metadata = {
     apple: "/api/icon/180",
   },
   openGraph: {
-    siteName: "Cadenz.io",
-    title: "Cadenz.io — Your walk, your music",
+    siteName: "Cadenzio",
+    title: "Cadenzio — Your walk, your music",
     description: "Compose music while you move. Every walk becomes a composition.",
     type: "website",
   },

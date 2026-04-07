@@ -1,8 +1,10 @@
 "use client"
 
+"use client"
+
 import Link from "next/link"
 import Image from "next/image"
-import { Heart, MessageCircle, Music2, Timer, Ruler } from "lucide-react"
+import { Heart, MessageCircle, Music2, Timer, Ruler, Share2 } from "lucide-react"
 import { formatDuration, formatDistance, timeAgo } from "@/lib/utils"
 
 interface Props {
@@ -102,6 +104,19 @@ export function ActivityCard({ activity, units = "metric" }: Props) {
             <MessageCircle size={16} />
             {activity._count.comments}
           </span>
+          <button
+            onClick={(e) => {
+              e.preventDefault()
+              navigator.share?.({
+                title: activity.title,
+                url: `${window.location.origin}/activity/${activity.id}`,
+              })
+            }}
+            className="ml-auto flex items-center gap-1.5 text-sm text-muted hover:text-wave transition-colors"
+            aria-label="Share activity"
+          >
+            <Share2 size={15} />
+          </button>
         </div>
       </article>
     </Link>

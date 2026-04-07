@@ -17,9 +17,13 @@ interface Props {
   isPro: boolean
   userId: string
   units?: "metric" | "imperial"
+  usedSeconds?: number  // combined seconds already recorded (free tier)
 }
 
-export function RecordScreen({ isPro, userId, units = "metric" }: Props) {
+// Exponential moving average for compass smoothing
+const BEARING_ALPHA = 0.25 // lower = smoother, higher = more responsive
+
+export function RecordScreen({ isPro, userId, units = "metric", usedSeconds = 0 }: Props) {
   const router = useRouter()
   const [state, setState] = useState<RecordState>("idle")
   const [settings, setSettings] = useState<{
@@ -33,15 +37,17 @@ export function RecordScreen({ isPro, userId, units = "metric" }: Props) {
   const [points, setPoints] = useState<GpsPoint[]>([])
   const [elapsed, setElapsed] = useState(0)
   const [distance, setDistance] = useState(0)
+  const [bearing, setBearing] = useState(0)
   const [error, setError] = useState<string | null>(null)
 
   const watchIdRef = useRef<number | null>(null)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const startTimeRef = useRef<number>(0)
-  // Always points to the latest stopRecording — prevents stale closure in the timer callback
+  const smoothedBearingRef = useRef<number>(0)
   const stopRecordingRef = useRef<() => Promise<void>>(() => Promise.resolve())
 
-  const MAX_SECONDS = isPro ? Infinity : FREE_LIMITS.MAX_RECORDING_SECONDS
+  // Remaining seconds for free tier (combined across all recordings)
+  const remainingSeconds = isPro ? Infinity : Math.max(0, FREE_LIMITS.MAX_RECORDING_SECONDS - usedSeconds)
 
   const stopRecording = useCallback(async () => {
     if (watchIdRef.current !== null) {
@@ -56,13 +62,15 @@ export function RecordScreen({ isPro, userId, units = "metric" }: Props) {
     await saveActivity()
   }, [points, settings, distance, elapsed])
 
-  // Keep ref current so the interval can always call the latest version
   useEffect(() => { stopRecordingRef.current = stopRecording }, [stopRecording])
 
-  // Start GPS + timer
   const startRecording = useCallback(() => {
     if (!navigator.geolocation) {
       setError("Geolocation is not supported by your browser.")
+      return
+    }
+    if (!isPro && remainingSeconds <= 0) {
+      setError("You've used your free recording allowance. Upgrade to Pro for unlimited recordings.")
       return
     }
     setState("recording")
@@ -71,7 +79,7 @@ export function RecordScreen({ isPro, userId, units = "metric" }: Props) {
     timerRef.current = setInterval(() => {
       const secs = Math.floor((Date.now() - startTimeRef.current) / 1000)
       setElapsed(secs)
-      if (!isPro && secs >= FREE_LIMITS.MAX_RECORDING_SECONDS) {
+      if (!isPro && secs >= remainingSeconds) {
         stopRecordingRef.current()
       }
     }, 1000)
@@ -83,17 +91,29 @@ export function RecordScreen({ isPro, userId, units = "metric" }: Props) {
 
         setPoints((prev) => {
           const next = [...prev, { lat, lng, timestamp: ts }]
+
           if (prev.length > 0) {
             const last = prev[prev.length - 1]
             setDistance((d) => d + haversineDistance(last.lat, last.lng, lat, lng))
+
+            // Compute raw bearing then apply EMA for smoothing
+            const rawBearing = computeBearing(last.lat, last.lng, lat, lng)
+            // Handle wrap-around at 0/360
+            let delta = rawBearing - smoothedBearingRef.current
+            if (delta > 180) delta -= 360
+            if (delta < -180) delta += 360
+            const smoothed = (smoothedBearingRef.current + BEARING_ALPHA * delta + 360) % 360
+            smoothedBearingRef.current = smoothed
+            setBearing(smoothed)
           }
+
           return next
         })
       },
       (err) => setError(`GPS error: ${err.message}`),
-      { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
+      { enableHighAccuracy: true, maximumAge: 2000, timeout: 15000 }
     )
-  }, [isPro])
+  }, [isPro, remainingSeconds])
 
   async function saveActivity() {
     try {
@@ -125,7 +145,6 @@ export function RecordScreen({ isPro, userId, units = "metric" }: Props) {
     if (timerRef.current) clearInterval(timerRef.current)
   }, [])
 
-  // Pre-record settings screen
   if (state === "idle") {
     return (
       <PreRecordSettings
@@ -145,13 +164,8 @@ export function RecordScreen({ isPro, userId, units = "metric" }: Props) {
     )
   }
 
-  const currentPoint = points[points.length - 1]
-  const bearing = points.length >= 2
-    ? computeBearing(
-        points[points.length - 2].lat, points[points.length - 2].lng,
-        currentPoint!.lat, currentPoint!.lng
-      )
-    : 0
+  const pctUsed = !isPro ? Math.min(1, elapsed / remainingSeconds) : 0
+  const minsLeft = Math.max(0, Math.round((remainingSeconds - elapsed) / 60))
 
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)]">
@@ -182,7 +196,7 @@ export function RecordScreen({ isPro, userId, units = "metric" }: Props) {
               <Navigation
                 size={20}
                 className="text-wave"
-                style={{ transform: `rotate(${bearing}deg)` }}
+                style={{ transform: `rotate(${bearing}deg)`, transition: "transform 0.8s ease-out" }}
               />
               <p className="text-2xl font-bold text-ink">{Math.round(bearing)}°</p>
             </div>
@@ -198,11 +212,19 @@ export function RecordScreen({ isPro, userId, units = "metric" }: Props) {
           </span>
         </div>
 
-        {/* Free tier warning */}
-        {!isPro && elapsed > FREE_LIMITS.MAX_RECORDING_SECONDS * 0.8 && (
-          <p className="text-xs text-beat text-center mb-4">
-            {Math.round((MAX_SECONDS - elapsed) / 60)} min remaining on free tier
-          </p>
+        {/* Free tier progress */}
+        {!isPro && (
+          <div className="mb-4">
+            <div className="h-1.5 bg-border rounded-full overflow-hidden mb-1">
+              <div
+                className="h-full bg-wave rounded-full transition-all"
+                style={{ width: `${pctUsed * 100}%`, backgroundColor: pctUsed > 0.8 ? "#F97316" : "#14B8A6" }}
+              />
+            </div>
+            <p className="text-xs text-muted text-center">
+              {minsLeft > 0 ? `${minsLeft} min remaining on free tier` : "Time limit reached — stopping…"}
+            </p>
+          </div>
         )}
 
         {/* Stop button */}
@@ -210,6 +232,7 @@ export function RecordScreen({ isPro, userId, units = "metric" }: Props) {
           onClick={stopRecording}
           disabled={points.length < 5}
           className="w-full flex items-center justify-center gap-3 bg-beat text-white font-semibold rounded-2xl py-4 recording-pulse hover:bg-beat-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          style={{ WebkitTapHighlightColor: "transparent", touchAction: "manipulation" }}
         >
           <Square size={20} fill="white" />
           Stop &amp; Compose

@@ -3,6 +3,9 @@
 import { useState, useRef, useEffect } from "react"
 import { Play, Pause, Music2 } from "lucide-react"
 
+const SPEEDS = [1, 1.5, 2, 3] as const
+type Speed = typeof SPEEDS[number]
+
 interface NoteEvent {
   note: number
   duration: string
@@ -41,6 +44,7 @@ export function CompositionPlayer({ midiEvents, bpmAvg, genre, instrument = "pia
   const [progress, setProgress]       = useState(0)
   const [currentTime, setCurrentTime] = useState(0)
   const [loaded, setLoaded]           = useState(false)
+  const [speed, setSpeed]             = useState<Speed>(1)
 
   const T                = useRef<ToneModule | null>(null)
   const disposables      = useRef<{ dispose: () => void }[]>([])
@@ -118,7 +122,7 @@ export function CompositionPlayer({ midiEvents, bpmAvg, genre, instrument = "pia
 
     await Tone.start()
 
-    const bpm = bpmAvg ?? 90
+    const bpm = (bpmAvg ?? 90) * speed
     Tone.getTransport().bpm.value = bpm
 
     const knownInstrument = (instrument in INSTRUMENT_CONFIG)
@@ -302,6 +306,24 @@ export function CompositionPlayer({ midiEvents, bpmAvg, genre, instrument = "pia
             <span>{fmt(currentTime)}</span>
             <span>{fmt(totalDuration)}</span>
           </div>
+        </div>
+
+        {/* Speed control */}
+        <div className="flex flex-col gap-1 flex-shrink-0">
+          {SPEEDS.map((s) => (
+            <button
+              key={s}
+              onClick={() => {
+                setSpeed(s)
+                if (T.current) T.current.getTransport().bpm.value = (bpmAvg ?? 90) * s
+              }}
+              className={`text-[10px] font-semibold px-1.5 py-0.5 rounded transition-colors leading-tight ${
+                speed === s ? "bg-wave text-white" : "text-muted hover:text-ink"
+              }`}
+            >
+              {s}×
+            </button>
+          ))}
         </div>
       </div>
 
