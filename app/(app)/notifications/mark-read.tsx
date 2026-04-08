@@ -4,7 +4,9 @@ import { useEffect } from "react"
 
 export function MarkNotificationsRead() {
   useEffect(() => {
-    fetch("/api/notifications/read", { method: "POST" }).catch(() => {})
+    const controller = new AbortController()
+    fetch("/api/notifications/read", { method: "POST", signal: controller.signal }).catch(() => {})
+    return () => controller.abort()
   }, [])
   return null
 }

@@ -24,14 +24,14 @@ export function ChallengeRevealPopup({ challengeId, activityId }: Props) {
     router.replace(`/activity/${activityId}`, { scroll: false })
   }
 
-  // Close on Escape
+  // Close on Escape — capture activityId directly so there's no stale closure over dismiss
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") dismiss()
+      if (e.key === "Escape") router.replace(`/activity/${activityId}`, { scroll: false })
     }
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
-  }, [])
+  }, [activityId, router])
 
   if (!level) return null
 

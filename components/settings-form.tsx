@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Check, Lock, Download, Trash2 } from "lucide-react"
 import Link from "next/link"
 import { useT, useLang } from "@/components/layout/language-provider"
@@ -22,6 +22,7 @@ export function SettingsForm({ profile, tier, userEmail, userName }: Props) {
   const currentLang = useLang()
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [bio, setBio] = useState(profile?.bio ?? "")
   const [country, setCountry] = useState(profile?.country ?? "")
@@ -30,6 +31,8 @@ export function SettingsForm({ profile, tier, userEmail, userName }: Props) {
   const [units, setUnits] = useState<"metric" | "imperial">((profile?.units ?? "metric") as "metric" | "imperial")
   const [language, setLanguage] = useState<Lang>((profile?.language ?? currentLang) as Lang)
   const isPro = tier === "PRO"
+
+  useEffect(() => () => { if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current) }, [])
 
   function toggleInterest(v: string) {
     setInterests((prev) => prev.includes(v) ? prev.filter((i) => i !== v) : [...prev, v])
@@ -54,7 +57,8 @@ export function SettingsForm({ profile, tier, userEmail, userName }: Props) {
     // Persist lang in cookie and reload so the whole app switches
     document.cookie = `${LANG_COOKIE}=${language};path=/;max-age=31536000;SameSite=Lax`
     setSaved(true)
-    setTimeout(() => {
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
+    saveTimeoutRef.current = setTimeout(() => {
       setSaved(false)
       // Reload only if language changed
       if (language !== currentLang) window.location.reload()
