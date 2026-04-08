@@ -3,29 +3,40 @@
 import { useState } from "react"
 import { Play, Lock } from "lucide-react"
 import { FREE_LIMITS } from "@/lib/constants"
+import { useT } from "@/components/layout/language-provider"
 
 const NOTES = ["C2", "C3", "D3", "E3", "F3", "G3", "A3", "B3", "C4", "D4", "E4", "F4", "G4", "A4", "C5"]
+
 const SCALES = [
-  { value: "major",           label: "Major" },
-  { value: "natural_minor",   label: "Minor" },
-  { value: "blues",           label: "Blues" },
-  { value: "pentatonic_major",label: "Pentatonic" },
-  { value: "dorian",          label: "Dorian" },
-  { value: "lydian",          label: "Lydian" },
+  { value: "major",            labelKey: "scale.major"            as const },
+  { value: "natural_minor",    labelKey: "scale.natural_minor"    as const },
+  { value: "blues",            labelKey: "scale.blues"            as const },
+  { value: "pentatonic_major", labelKey: "scale.pentatonic_major" as const },
+  { value: "dorian",           labelKey: "scale.dorian"           as const },
+  { value: "lydian",           labelKey: "scale.lydian"           as const },
 ]
+
 const GENRES = [
-  { value: "classical",  label: "Classical",  pro: false },
-  { value: "blues",      label: "Blues",      pro: false },
-  { value: "jazz",       label: "Jazz",       pro: true  },
-  { value: "ambient",    label: "Ambient",    pro: true  },
-  { value: "electronic", label: "Electronic", pro: true  },
+  { value: "classical",  labelKey: "genre.classical"  as const, pro: false },
+  { value: "blues",      labelKey: "genre.blues"      as const, pro: false },
+  { value: "jazz",       labelKey: "genre.jazz"       as const, pro: true  },
+  { value: "ambient",    labelKey: "genre.ambient"    as const, pro: true  },
+  { value: "electronic", labelKey: "genre.electronic" as const, pro: true  },
 ]
+
 const INSTRUMENTS = [
-  { value: "piano",  label: "Piano",  emoji: "🎹", pro: false },
-  { value: "synth",  label: "Synth",  emoji: "🎛️", pro: false },
-  { value: "violin", label: "Violin", emoji: "🎻", pro: true  },
-  { value: "drums",  label: "Drums",  emoji: "🥁", pro: true  },
+  { value: "piano",  emoji: "🎹", pro: false },
+  { value: "synth",  emoji: "🎛️", pro: false },
+  { value: "violin", emoji: "🎻", pro: true  },
+  { value: "drums",  emoji: "🥁", pro: true  },
 ]
+
+const INSTRUMENT_LABELS: Record<string, string> = {
+  piano: "Piano", synth: "Synth", violin: "Violin", drums: "Drums",
+}
+const INSTRUMENT_LABELS_JA: Record<string, string> = {
+  piano: "ピアノ", synth: "シンセ", violin: "バイオリン", drums: "ドラム",
+}
 
 interface Props {
   isPro: boolean
@@ -33,23 +44,26 @@ interface Props {
 }
 
 export function PreRecordSettings({ isPro, onStart }: Props) {
+  const t = useT()
   const [title, setTitle] = useState("")
   const [note, setNote] = useState("C4")
   const [scale, setScale] = useState("major")
   const [genre, setGenre] = useState("classical")
   const [instrument, setInstrument] = useState("piano")
 
+  const instLabels = t("nav.settings") === "設定" ? INSTRUMENT_LABELS_JA : INSTRUMENT_LABELS
+
   return (
     <div className="px-4 py-6 max-w-sm mx-auto">
-      <h1 className="text-xl font-bold text-ink mb-1">New composition</h1>
-      <p className="text-sm text-muted mb-8">Set up your walk before you start recording.</p>
+      <h1 className="text-xl font-bold text-ink mb-1">{t("record.new")}</h1>
+      <p className="text-sm text-muted mb-8">{t("record.subtitle")}</p>
 
       {/* Title */}
       <div className="mb-6">
-        <label className="block text-sm font-medium text-ink mb-2">Title</label>
+        <label className="block text-sm font-medium text-ink mb-2">{t("record.title")}</label>
         <input
           type="text"
-          placeholder="Morning walk in the park…"
+          placeholder={t("record.title.ph")}
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           className="w-full border border-border rounded-xl px-4 py-3 text-sm text-ink bg-surface focus:outline-none focus:ring-2 focus:ring-wave/30"
@@ -58,7 +72,7 @@ export function PreRecordSettings({ isPro, onStart }: Props) {
 
       {/* Instrument */}
       <div className="mb-6">
-        <label className="block text-sm font-medium text-ink mb-2">Instrument</label>
+        <label className="block text-sm font-medium text-ink mb-2">{t("record.instrument")}</label>
         <div className="grid grid-cols-4 gap-2">
           {INSTRUMENTS.map((inst) => {
             const locked = inst.pro && !isPro
@@ -77,7 +91,7 @@ export function PreRecordSettings({ isPro, onStart }: Props) {
               >
                 {locked && <Lock size={10} className="absolute top-1.5 right-1.5 text-muted" />}
                 <span className="text-xl">{inst.emoji}</span>
-                {inst.label}
+                {instLabels[inst.value]}
               </button>
             )
           })}
@@ -85,15 +99,15 @@ export function PreRecordSettings({ isPro, onStart }: Props) {
         {!isPro && (
           <p className="text-xs text-muted mt-2">
             <Lock size={10} className="inline mr-1" />
-            Violin &amp; Drums require{" "}
-            <a href="/settings/upgrade" className="text-wave hover:underline">Pro</a>
+            {t("record.pro.lock.instruments")}{" "}
+            <a href="/settings/upgrade" className="text-wave hover:underline">{t("upgrade.cta")}</a>
           </p>
         )}
       </div>
 
       {/* Starting note */}
       <div className="mb-6">
-        <label className="block text-sm font-medium text-ink mb-2">Starting note</label>
+        <label className="block text-sm font-medium text-ink mb-2">{t("record.note")}</label>
         <div className="flex flex-wrap gap-2">
           {NOTES.map((n) => (
             <button
@@ -113,7 +127,7 @@ export function PreRecordSettings({ isPro, onStart }: Props) {
 
       {/* Scale */}
       <div className="mb-6">
-        <label className="block text-sm font-medium text-ink mb-2">Scale</label>
+        <label className="block text-sm font-medium text-ink mb-2">{t("record.scale")}</label>
         <div className="grid grid-cols-3 gap-2">
           {SCALES.map((s) => (
             <button
@@ -125,7 +139,7 @@ export function PreRecordSettings({ isPro, onStart }: Props) {
                   : "bg-surface text-ink border-border hover:border-wave/50"
               }`}
             >
-              {s.label}
+              {t(s.labelKey)}
             </button>
           ))}
         </div>
@@ -133,7 +147,7 @@ export function PreRecordSettings({ isPro, onStart }: Props) {
 
       {/* Genre */}
       <div className="mb-8">
-        <label className="block text-sm font-medium text-ink mb-2">Genre</label>
+        <label className="block text-sm font-medium text-ink mb-2">{t("record.genre")}</label>
         <div className="grid grid-cols-2 gap-2">
           {GENRES.map((g) => {
             const locked = g.pro && !isPro
@@ -151,7 +165,7 @@ export function PreRecordSettings({ isPro, onStart }: Props) {
                 }`}
               >
                 {locked && <Lock size={12} className="absolute top-2 right-2 text-muted" />}
-                {g.label}
+                {t(g.labelKey)}
               </button>
             )
           })}
@@ -159,8 +173,8 @@ export function PreRecordSettings({ isPro, onStart }: Props) {
         {!isPro && (
           <p className="text-xs text-muted mt-2">
             <Lock size={10} className="inline mr-1" />
-            Jazz, Ambient, Electronic require{" "}
-            <a href="/settings/upgrade" className="text-wave hover:underline">Pro</a>
+            {t("record.pro.lock.genres")}{" "}
+            <a href="/settings/upgrade" className="text-wave hover:underline">{t("upgrade.cta")}</a>
           </p>
         )}
       </div>
@@ -168,7 +182,7 @@ export function PreRecordSettings({ isPro, onStart }: Props) {
       {/* Free tier info */}
       {!isPro && (
         <div className="bg-beat/10 border border-beat/20 rounded-xl p-4 mb-6 text-sm text-beat">
-          Free tier: up to {FREE_LIMITS.MAX_RECORDING_SECONDS / 60} minutes of recordings combined.
+          {t("record.free.limit")}
         </div>
       )}
 
@@ -176,9 +190,10 @@ export function PreRecordSettings({ isPro, onStart }: Props) {
       <button
         onClick={() => onStart({ startingNote: note, scale, genre, title: title || "Untitled Walk", instrument })}
         className="w-full flex items-center justify-center gap-3 bg-wave text-white font-bold rounded-2xl py-4 text-base hover:bg-wave/80 transition-colors shadow-md"
+        style={{ touchAction: "manipulation" }}
       >
         <Play size={20} fill="white" />
-        Start recording
+        {t("record.start")}
       </button>
     </div>
   )

@@ -86,6 +86,7 @@ model Profile {
   totalActivities  Int      @default(0)
   totalDistance    Float    @default(0)
   units            String   @default("metric") // "metric" | "imperial"
+  language         String   @default("en")    // "en" | "ja"
   isPublic         Boolean  @default(true)
   onboardingDone   Boolean  @default(false)
   createdAt        DateTime @default(now())

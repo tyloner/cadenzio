@@ -14,7 +14,7 @@ export default async function SettingsPage({
   const userId = session!.user!.id!
 
   const [profile, subscription, { upgraded }] = await Promise.all([
-    db.profile.findUnique({ where: { userId }, select: { username: true, bio: true, country: true, musicalInterests: true, isPublic: true, units: true } }),
+    db.profile.findUnique({ where: { userId }, select: { username: true, bio: true, country: true, musicalInterests: true, isPublic: true, units: true, language: true } }),
     db.subscription.findUnique({ where: { userId } }),
     searchParams,
   ])
@@ -27,9 +27,9 @@ export default async function SettingsPage({
         <div className="flex items-start gap-3 bg-wave/10 border border-wave/30 rounded-2xl px-4 py-4 mb-6">
           <CheckCircle2 size={20} className="text-wave flex-shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-semibold text-wave">Welcome to Cadenz Pro!</p>
+            <p className="text-sm font-semibold text-wave">{profile?.language === "ja" ? "Cadenzio Proへようこそ！" : "Welcome to Cadenzio Pro!"}</p>
             <p className="text-xs text-wave/80 mt-0.5">
-              Your subscription is active. All features are now unlocked.
+              {profile?.language === "ja" ? "サブスクリプションが有効になりました。すべての機能が利用可能です。" : "Your subscription is active. All features are now unlocked."}
             </p>
           </div>
         </div>

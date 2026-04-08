@@ -8,6 +8,7 @@ import { haversineDistance, computeBearing, formatDuration, formatDistance } fro
 import { FREE_LIMITS } from "@/lib/constants"
 import type { GpsPoint } from "@/lib/music-engine/gps-processor"
 import { PreRecordSettings } from "./pre-record-settings"
+import { useT } from "@/components/layout/language-provider"
 
 const RecordMap = dynamic(() => import("./record-map"), { ssr: false })
 
@@ -25,6 +26,7 @@ const BEARING_ALPHA = 0.25 // lower = smoother, higher = more responsive
 
 export function RecordScreen({ isPro, userId, units = "metric", usedSeconds = 0 }: Props) {
   const router = useRouter()
+  const t = useT()
   const [state, setState] = useState<RecordState>("idle")
   const [settings, setSettings] = useState<{
     startingNote: string
@@ -158,8 +160,8 @@ export function RecordScreen({ isPro, userId, units = "metric", usedSeconds = 0 
     return (
       <div className="flex flex-col items-center justify-center min-h-[70vh] gap-4 text-center px-6">
         <Loader2 size={40} className="text-wave animate-spin" />
-        <h2 className="text-lg font-semibold text-ink">Composing your music…</h2>
-        <p className="text-sm text-muted">Processing {points.length} clefs into a {settings?.genre} composition.</p>
+        <h2 className="text-lg font-semibold text-ink">{t("hud.composing")}</h2>
+        <p className="text-sm text-muted">{t("hud.processing", { n: points.length, genre: settings?.genre ?? "" })}</p>
       </div>
     )
   }
@@ -185,11 +187,11 @@ export function RecordScreen({ isPro, userId, units = "metric", usedSeconds = 0 
         <div className="flex justify-around mb-6">
           <div className="text-center">
             <p className="text-2xl font-bold font-mono text-ink">{formatDuration(elapsed)}</p>
-            <p className="text-xs text-muted mt-0.5">Duration</p>
+            <p className="text-xs text-muted mt-0.5">{t("hud.duration")}</p>
           </div>
           <div className="text-center">
             <p className="text-2xl font-bold text-ink">{formatDistance(distance, units)}</p>
-            <p className="text-xs text-muted mt-0.5">Distance</p>
+            <p className="text-xs text-muted mt-0.5">{t("hud.distance")}</p>
           </div>
           <div className="text-center">
             <div className="flex items-center justify-center gap-1">
@@ -200,7 +202,7 @@ export function RecordScreen({ isPro, userId, units = "metric", usedSeconds = 0 
               />
               <p className="text-2xl font-bold text-ink">{Math.round(bearing)}°</p>
             </div>
-            <p className="text-xs text-muted mt-0.5">Bearing</p>
+            <p className="text-xs text-muted mt-0.5">{t("hud.bearing")}</p>
           </div>
         </div>
 
@@ -222,7 +224,7 @@ export function RecordScreen({ isPro, userId, units = "metric", usedSeconds = 0 
               />
             </div>
             <p className="text-xs text-muted text-center">
-              {minsLeft > 0 ? `${minsLeft} min remaining on free tier` : "Time limit reached — stopping…"}
+              {minsLeft > 0 ? t("hud.free.left", { n: minsLeft }) : t("hud.free.done")}
             </p>
           </div>
         )}
@@ -235,10 +237,10 @@ export function RecordScreen({ isPro, userId, units = "metric", usedSeconds = 0 
           style={{ WebkitTapHighlightColor: "transparent", touchAction: "manipulation" }}
         >
           <Square size={20} fill="white" />
-          Stop &amp; Compose
+          {t("hud.stop")}
         </button>
         {points.length < 5 && (
-          <p className="text-xs text-muted text-center mt-2">Keep walking to gather GPS data…</p>
+          <p className="text-xs text-muted text-center mt-2">{t("hud.wait")}</p>
         )}
       </div>
     </div>

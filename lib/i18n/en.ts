@@ -1,0 +1,157 @@
+const en = {
+  // Navigation
+  "nav.feed":          "Feed",
+  "nav.map":           "Map",
+  "nav.record":        "Record",
+  "nav.profile":       "Profile",
+  "nav.settings":      "Settings",
+
+  // Login
+  "login.tagline":     "Your walk, your music.",
+  "login.sub":         "Every step becomes a note. Every walk becomes a composition.",
+  "login.cta":         "Sign in with Google",
+  "login.terms":       "By signing in you agree to our",
+  "login.terms.link":  "Terms & Privacy",
+
+  // Pre-record settings
+  "record.new":        "New composition",
+  "record.subtitle":   "Set up your walk before you start.",
+  "record.title":      "Title",
+  "record.title.ph":   "Morning walk in the park…",
+  "record.instrument": "Instrument",
+  "record.note":       "Starting note",
+  "record.scale":      "Scale",
+  "record.genre":      "Genre",
+  "record.start":      "Start recording",
+  "record.free.limit": "Free tier: up to 30 minutes of recordings combined.",
+  "record.pro.lock.instruments": "Violin & Drums require Pro",
+  "record.pro.lock.genres":      "Jazz, Ambient, Electronic require Pro",
+
+  // HUD
+  "hud.duration":      "Duration",
+  "hud.distance":      "Distance",
+  "hud.bearing":       "Bearing",
+  "hud.stop":          "Stop & Compose",
+  "hud.wait":          "Keep walking to gather GPS data…",
+  "hud.composing":     "Composing your music…",
+  "hud.processing":    "Processing {n} clefs into a {genre} composition.",
+  "hud.free.left":     "{n} min remaining on free tier",
+  "hud.free.done":     "Time limit reached — stopping…",
+
+  // Activity detail
+  "activity.duration": "Duration",
+  "activity.distance": "Distance",
+  "activity.bpm":      "Avg BPM",
+  "activity.like":     "Like",
+  "activity.share":    "Share",
+  "activity.public":   "Public",
+  "activity.private":  "Private",
+  "activity.delete":   "Delete activity",
+  "activity.delete.confirm": "Delete?",
+  "activity.delete.yes":     "Yes",
+  "activity.delete.cancel":  "Cancel",
+  "activity.delete.ing":     "Deleting…",
+
+  // Composition player
+  "player.loading.piano": "Loading piano…",
+  "player.loading":       "Loading…",
+
+  // Comments
+  "comments.none":      "No comments",
+  "comments.count":     "{n} comment",
+  "comments.count.pl":  "{n} comments",
+  "comments.show":      "Show",
+  "comments.hide":      "Hide",
+  "comments.empty":     "Be the first to comment.",
+  "comments.ph":        "Add a comment…",
+  "comments.error.load":"Couldn't load comments.",
+  "comments.error.post":"Failed to post comment. Try again.",
+  "comments.error.net": "Network error. Check your connection.",
+  "comments.retry":     "Retry",
+
+  // Profile
+  "profile.compositions": "Compositions",
+  "profile.walked":        "walked",
+  "profile.followers":     "Followers",
+  "profile.following":     "Following",
+  "profile.edit":          "Edit profile",
+  "profile.no.activities": "No public compositions yet.",
+  "profile.compositions.label": "Compositions",
+
+  // Level progress
+  "level.clefs":      "{n} / {cap} clefs",
+  "level.max":        "Max level reached",
+  "level.next":       "{n} more composition to {name}",
+  "level.next.pl":    "{n} more compositions to {name}",
+
+  // Settings
+  "settings.title":        "Settings",
+  "settings.account":      "Account",
+  "settings.account.name": "Name",
+  "settings.account.email":"Email",
+  "settings.plan":         "Plan",
+  "settings.plan.free":    "Free",
+  "settings.plan.pro":     "Pro",
+  "settings.plan.upgrade.desc": "Upgrade to unlock unlimited recordings, all genres, style tagging, and more.",
+  "settings.plan.upgrade.btn":  "Upgrade to Pro",
+  "settings.profile":      "Profile",
+  "settings.username":     "Username",
+  "settings.username.hint":"Only letters, numbers and underscores. Min 3 characters.",
+  "settings.units":        "Units",
+  "settings.units.metric": "Metric (km)",
+  "settings.units.imperial":"Imperial (mi)",
+  "settings.language":     "Language",
+  "settings.bio":          "Bio",
+  "settings.bio.ph":       "A few words about yourself…",
+  "settings.country":      "Country",
+  "settings.country.ph":   "Select country…",
+  "settings.interests":    "Musical interests",
+  "settings.save":         "Save changes",
+  "settings.saving":       "Saving…",
+  "settings.saved":        "Saved!",
+  "settings.privacy":      "Privacy & Data",
+  "settings.privacy.desc": "Your location data is only stored as part of your activity records and never sold to third parties.",
+  "settings.privacy.policy":"Privacy Policy",
+  "settings.terms":        "Terms of Service",
+  "settings.export":       "Export my data",
+  "settings.export.desc":  "Download a copy of all your data (account, profile, activities, compositions) as JSON.",
+  "settings.delete":       "Delete account",
+  "settings.delete.desc":  "Permanently delete your account and all associated data. This cannot be undone.",
+  "settings.delete.warning":"This will permanently delete your account, all compositions, activities, and profile data.",
+  "settings.delete.confirm.label": "Type DELETE to confirm",
+  "settings.delete.btn":   "Delete my account",
+  "settings.delete.ing":   "Deleting…",
+  "settings.cancel":       "Cancel",
+  "settings.signout":      "Sign out",
+  "settings.style":        "Style Profile",
+  "settings.style.pro":    "Your musical persona and style tags appear here on Pro.",
+  "settings.upgraded":     "Welcome to Cadenzio Pro!",
+  "settings.upgraded.sub": "Your subscription is active. All features are now unlocked.",
+
+  // Dashboard
+  "dashboard.empty.title":    "No compositions yet",
+  "dashboard.empty.sub":      "Start your first walk to create music.",
+  "dashboard.empty.cta":      "Start recording",
+
+  // Scale names
+  "scale.major":           "Major",
+  "scale.natural_minor":   "Minor",
+  "scale.blues":           "Blues",
+  "scale.pentatonic_major":"Pentatonic",
+  "scale.dorian":          "Dorian",
+  "scale.lydian":          "Lydian",
+
+  // Genre names
+  "genre.classical":   "Classical",
+  "genre.blues":       "Blues",
+  "genre.jazz":        "Jazz",
+  "genre.ambient":     "Ambient",
+  "genre.electronic":  "Electronic",
+
+  // Misc
+  "upgrade.cta": "Upgrade",
+  "error.generic": "Something went wrong. Please try again.",
+} as const
+
+export default en
+export type TranslationKey = keyof typeof en

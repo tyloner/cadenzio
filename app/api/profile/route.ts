@@ -6,13 +6,12 @@ export async function PATCH(req: NextRequest) {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const { bio, country, musicalInterests, username, units } = await req.json()
+  const { bio, country, musicalInterests, username, units, language } = await req.json()
 
   const data: Record<string, unknown> = { bio, country, musicalInterests }
 
-  if (units === "metric" || units === "imperial") {
-    data.units = units
-  }
+  if (units === "metric" || units === "imperial") data.units = units
+  if (language === "en" || language === "ja") data.language = language
 
   if (username !== undefined) {
     const trimmed = (username as string).trim().toLowerCase().replace(/[^a-z0-9_]/g, "")

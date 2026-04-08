@@ -6,17 +6,20 @@ import { Map, List, Plus, User, Settings } from "lucide-react"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
 import { NotificationBell } from "@/components/notification-bell"
+import { useT } from "@/components/layout/language-provider"
+import type { Lang } from "@/lib/i18n"
 
-const NAV = [
-  { href: "/dashboard",  label: "Feed",    icon: List  },
-  { href: "/map",        label: "Map",     icon: Map   },
-  { href: "/record",     label: "Record",  icon: Plus  },
-  { href: "/profile",    label: "Profile", icon: User  },
-  { href: "/settings",   label: "Settings",icon: Settings },
-]
-
-export function AppShell({ children }: { children: React.ReactNode }) {
+export function AppShell({ children, lang: _lang }: { children: React.ReactNode; lang?: Lang }) {
   const pathname = usePathname()
+  const t = useT()
+
+  const NAV = [
+    { href: "/dashboard",  labelKey: "nav.feed"    as const, icon: List     },
+    { href: "/map",        labelKey: "nav.map"     as const, icon: Map      },
+    { href: "/record",     labelKey: "nav.record"  as const, icon: Plus     },
+    { href: "/profile",    labelKey: "nav.profile" as const, icon: User     },
+    { href: "/settings",   labelKey: "nav.settings"as const, icon: Settings },
+  ]
 
   return (
     <div className="flex flex-col min-h-screen max-w-2xl mx-auto relative">
@@ -34,7 +37,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Bottom nav */}
       <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-2xl bg-surface border-t border-border z-40">
         <div className="flex items-center justify-around h-16">
-          {NAV.map(({ href, label, icon: Icon }) => {
+          {NAV.map(({ href, labelKey, icon: Icon }) => {
             const active = pathname === href || (href !== "/dashboard" && pathname.startsWith(href))
             const isRecord = href === "/record"
             return (
@@ -52,12 +55,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   </span>
                 ) : (
                   <>
-                    <Icon
-                      size={22}
-                      className={cn(active ? "text-wave" : "text-muted")}
-                    />
+                    <Icon size={22} className={cn(active ? "text-wave" : "text-muted")} />
                     <span className={cn("text-[10px]", active ? "text-wave font-medium" : "text-muted")}>
-                      {label}
+                      {t(labelKey)}
                     </span>
                   </>
                 )}
