@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
   const activity = await db.activity.create({
     data: {
       userId,
-      title: title ?? "Untitled Walk",
+      title: title ?? "Andante Walk",
       startedAt: new Date(gpsTrack[0]?.timestamp ?? Date.now()),
       endedAt: new Date(gpsTrack[gpsTrack.length - 1]?.timestamp ?? Date.now()),
       durationSec,

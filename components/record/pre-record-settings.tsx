@@ -46,7 +46,7 @@ interface Props {
 export function PreRecordSettings({ isPro, onStart }: Props) {
   const t = useT()
   const lang = useLang()
-  const [title, setTitle] = useState("")
+  const [title, setTitle] = useState("Andante Walk")
   const [note, setNote] = useState("C4")
   const [scale, setScale] = useState("major")
   const [genre, setGenre] = useState("classical")
@@ -189,7 +189,7 @@ export function PreRecordSettings({ isPro, onStart }: Props) {
 
       {/* Start */}
       <button
-        onClick={() => onStart({ startingNote: note, scale, genre, title: title || "Untitled Walk", instrument })}
+        onClick={() => onStart({ startingNote: note, scale, genre, title: title || "Andante Walk", instrument })}
         className="w-full flex items-center justify-center gap-3 bg-wave text-white font-bold rounded-2xl py-4 text-base hover:bg-wave/80 transition-colors shadow-md"
         style={{ touchAction: "manipulation" }}
       >

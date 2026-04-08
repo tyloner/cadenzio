@@ -303,8 +303,8 @@ export function CompositionPlayer({ midiEvents, bpmAvg, genre, instrument = "pia
             />
           </div>
           <div className="flex justify-between text-xs text-muted mt-1 tabular-nums">
-            <span>{fmt(currentTime)}</span>
-            <span>{fmt(totalDuration)}</span>
+            <span>{fmt(currentTime / speed)}</span>
+            <span>{fmt(totalDuration / speed)}</span>
           </div>
         </div>
 

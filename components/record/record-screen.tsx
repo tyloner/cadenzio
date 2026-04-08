@@ -123,7 +123,7 @@ export function RecordScreen({ isPro, userId, units = "metric", usedSeconds = 0 
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          title: settings?.title || "Untitled Walk",
+          title: settings?.title || "Andante Walk",
           gpsTrack: points,
           durationSec: elapsed,
           distanceM: distance,
