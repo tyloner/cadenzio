@@ -10,7 +10,7 @@ export async function GET(
   const comments = await db.comment.findMany({
     where: { activityId: id },
     orderBy: { createdAt: "asc" },
-    include: { user: { select: { name: true, image: true } } },
+    include: { user: { select: { name: true, image: true, profile: { select: { username: true } } } } },
   })
   return NextResponse.json(comments)
 }
@@ -31,7 +31,7 @@ export async function POST(
   const actorId = session.user.id
   const comment = await db.comment.create({
     data: { userId: actorId, activityId: id, body: body.trim() },
-    include: { user: { select: { name: true, image: true } } },
+    include: { user: { select: { name: true, image: true, profile: { select: { username: true } } } } },
   })
 
   // Notify activity owner (skip self-comment)

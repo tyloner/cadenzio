@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react"
 import Image from "next/image"
+import Link from "next/link"
 import { Send } from "lucide-react"
 import { timeAgo } from "@/lib/utils"
 
@@ -9,7 +10,7 @@ interface Comment {
   id: string
   body: string
   createdAt: string
-  user: { name: string | null; image: string | null }
+  user: { name: string | null; image: string | null; profile: { username: string } | null }
 }
 
 interface Props {
@@ -93,24 +94,40 @@ export function CommentsSection({ activityId, currentUserId, initialCount }: Pro
             <p className="text-sm text-muted text-center py-4">Be the first to comment.</p>
           ) : (
             <ul className="space-y-3">
-              {comments.map((c) => (
-                <li key={c.id} className="flex gap-3">
-                  {c.user.image ? (
-                    <Image src={c.user.image} alt={c.user.name ?? ""} width={28} height={28} className="rounded-full flex-shrink-0 mt-0.5" />
-                  ) : (
-                    <div className="w-7 h-7 rounded-full bg-wave/20 flex items-center justify-center text-wave text-xs font-bold flex-shrink-0 mt-0.5">
-                      {c.user.name?.[0] ?? "?"}
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-xs font-semibold text-ink">{c.user.name}</span>
-                      <span className="text-[10px] text-muted">{timeAgo(new Date(c.createdAt))}</span>
-                    </div>
-                    <p className="text-sm text-slate mt-0.5 leading-relaxed">{c.body}</p>
+              {comments.map((c) => {
+                const profileHref = c.user.profile?.username ? `/profile/${c.user.profile.username}` : null
+                const Avatar = () => c.user.image ? (
+                  <Image src={c.user.image} alt={c.user.name ?? ""} width={28} height={28} className="rounded-full flex-shrink-0 mt-0.5" />
+                ) : (
+                  <div className="w-7 h-7 rounded-full bg-wave/20 flex items-center justify-center text-wave text-xs font-bold flex-shrink-0 mt-0.5">
+                    {c.user.name?.[0] ?? "?"}
                   </div>
-                </li>
-              ))}
+                )
+                return (
+                  <li key={c.id} className="flex gap-3">
+                    {profileHref ? (
+                      <Link href={profileHref} className="flex-shrink-0 mt-0.5 hover:opacity-80 transition-opacity">
+                        <Avatar />
+                      </Link>
+                    ) : (
+                      <div className="flex-shrink-0 mt-0.5"><Avatar /></div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-baseline gap-2">
+                        {profileHref ? (
+                          <Link href={profileHref} className="text-xs font-semibold text-ink hover:text-wave transition-colors">
+                            {c.user.name}
+                          </Link>
+                        ) : (
+                          <span className="text-xs font-semibold text-ink">{c.user.name}</span>
+                        )}
+                        <span className="text-[10px] text-muted">{timeAgo(new Date(c.createdAt))}</span>
+                      </div>
+                      <p className="text-sm text-slate mt-0.5 leading-relaxed">{c.body}</p>
+                    </div>
+                  </li>
+                )
+              })}
             </ul>
           )}
 
