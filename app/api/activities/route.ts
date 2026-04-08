@@ -118,18 +118,19 @@ export async function POST(req: NextRequest) {
   // Check if a secret challenge should be revealed
   const newlyRevealedChallenge = checkNewReveal(count, updatedProfile.revealedChallenges)
 
-  // Persist badge + reveal updates
+  // Persist badge + reveal updates (guard against duplicate reveals under concurrent saves)
   const profileUpdates: Record<string, unknown> = {}
   if (newBadges.length > 0) profileUpdates.badges = { push: newBadges }
-  if (newlyRevealedChallenge) profileUpdates.revealedChallenges = { push: newlyRevealedChallenge }
+  if (newlyRevealedChallenge && !updatedProfile.revealedChallenges.includes(newlyRevealedChallenge)) {
+    profileUpdates.revealedChallenges = { push: newlyRevealedChallenge }
+  }
   if (Object.keys(profileUpdates).length > 0) {
     await db.profile.update({ where: { userId }, data: profileUpdates })
   }
 
   // Style tagging (pro only)
   if (isPro) {
-    const profile = await db.profile.findUnique({ where: { userId } })
-    const analysis = computeStyleAnalysis(midiEvents, genre as GenreName, bpmAvg, profile?.totalActivities ?? 1, (instrument as InstrumentName) ?? "piano")
+    const analysis = computeStyleAnalysis(midiEvents, genre as GenreName, bpmAvg, count, (instrument as InstrumentName) ?? "piano")
     await db.profile.updateMany({
       where: { userId },
       data: {

@@ -51,7 +51,9 @@ export default async function ActivityPage({
   params: Promise<{ id: string }>
   searchParams: Promise<{ reveal?: string }>
 }) {
-  const [{ id }, { reveal }] = await Promise.all([params, searchParams])
+  const VALID_REVEALS = new Set(["repertoire", "gifted", "virtuoso"])
+  const [{ id }, sp] = await Promise.all([params, searchParams])
+  const reveal = sp.reveal && VALID_REVEALS.has(sp.reveal) ? sp.reveal : null
   const session = await auth()
 
   const [activity, viewerProfile] = await Promise.all([

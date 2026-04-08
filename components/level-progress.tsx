@@ -116,9 +116,9 @@ export function LevelProgress({
       {/* Level strip */}
       <div className="flex items-center justify-between pt-3 border-t border-border">
         {LEVELS.map((lvl) => {
-          const earned =
-            !lvl.requirement ||
-            (totalActivities >= lvl.requirement.compositions)
+          // Wanderer has no requirement → always earned
+          // Others: check badge name against earnedBadges (which uses full meetsRequirement)
+          const earned = !lvl.requirement || data.earnedBadges.includes(lvl.badge)
           return (
             <div key={lvl.name} className="flex flex-col items-center gap-0.5">
               <span className={`text-lg ${earned ? "opacity-100" : "opacity-25 grayscale"}`}>
