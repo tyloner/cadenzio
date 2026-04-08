@@ -406,41 +406,43 @@ export function CompositionPlayer({ midiEvents, bpmAvg, genre, instrument = "pia
           </div>
         </div>
 
-        {/* Speed + export */}
-        <div className="flex flex-col gap-1 flex-shrink-0 items-end">
-          <div className="flex gap-0.5">
-            {SPEEDS.map((s) => (
-              <button
-                key={s}
-                onClick={() => {
-                  setSpeed(s)
-                  if (T.current) T.current.getTransport().playbackRate = s
-                }}
-                className={`text-[10px] font-semibold px-1.5 py-0.5 rounded transition-colors leading-tight ${
-                  speed === s ? "bg-wave text-white" : "text-muted hover:text-ink"
-                }`}
-              >
-                {s}×
-              </button>
-            ))}
-          </div>
-          <button
-            onClick={exportWav}
-            disabled={!loaded || exporting}
-            title="Export as WAV"
-            className="flex items-center gap-1 text-[10px] font-medium text-muted hover:text-wave transition-colors disabled:opacity-40 px-1"
-          >
-            <Download size={11} />
-            {exporting ? "Rendering…" : "WAV"}
-          </button>
+        {/* Speed control */}
+        <div className="flex flex-col gap-1 flex-shrink-0">
+          {SPEEDS.map((s) => (
+            <button
+              key={s}
+              onClick={() => {
+                setSpeed(s)
+                if (T.current) T.current.getTransport().playbackRate = s
+              }}
+              className={`text-[10px] font-semibold px-1.5 py-0.5 rounded transition-colors leading-tight ${
+                speed === s ? "bg-wave text-white" : "text-muted hover:text-ink"
+              }`}
+            >
+              {s}×
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Meta */}
+      {/* Meta + export */}
       <div className="flex items-center gap-1.5 text-xs text-muted">
         <Music2 size={11} className="text-wave flex-shrink-0" />
-        <span className="capitalize">{INSTRUMENT_CONFIG[instrument as InstrumentName]?.emoji ?? "🎵"} {instrument} · {startingNote} · {scale.replace(/_/g, " ")} · {genre}{bpmAvg ? ` · ~${Math.round(bpmAvg)} BPM` : ""}</span>
-        {!loaded && <span className="ml-auto text-wave/70 animate-pulse">{instrument === "piano" ? "Loading piano…" : "Loading…"}</span>}
+        <span className="capitalize flex-1 min-w-0 truncate">{INSTRUMENT_CONFIG[instrument as InstrumentName]?.emoji ?? "🎵"} {instrument} · {startingNote} · {scale.replace(/_/g, " ")} · {genre}{bpmAvg ? ` · ~${Math.round(bpmAvg)} BPM` : ""}</span>
+        {!loaded
+          ? <span className="text-wave/70 animate-pulse flex-shrink-0">{instrument === "piano" ? "Loading piano…" : "Loading…"}</span>
+          : (
+            <button
+              onClick={exportWav}
+              disabled={exporting}
+              title="Export as WAV"
+              className="flex-shrink-0 flex items-center gap-1 text-xs font-medium text-muted hover:text-wave border border-border hover:border-wave/40 rounded-lg px-2 py-1 transition-colors disabled:opacity-40"
+            >
+              <Download size={12} />
+              {exporting ? "Rendering…" : "Export WAV"}
+            </button>
+          )
+        }
       </div>
     </div>
   )
