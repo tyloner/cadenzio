@@ -26,25 +26,24 @@ export async function POST(req: NextRequest) {
 
   const userId = session.user.id
 
-  // Check free tier limits
-  const subscription = await db.subscription.findUnique({ where: { userId } })
+  // Check free tier limits — subscription + body parse in parallel
+  const [subscription, body] = await Promise.all([
+    db.subscription.findUnique({ where: { userId } }),
+    req.json(),
+  ])
   const isPro = subscription?.tier === "PRO"
-
-  const body = await req.json()
   const { title, gpsTrack, durationSec, distanceM, startingNote, scale, genre, instrument } = body
 
-  // Enforce 30-min combined cap for free users
+  // Enforce free tier caps — both checks in parallel
   if (!isPro) {
-    const used = await db.activity.aggregate({ where: { userId }, _sum: { durationSec: true } })
+    const [used, count] = await Promise.all([
+      db.activity.aggregate({ where: { userId }, _sum: { durationSec: true } }),
+      db.composition.count({ where: { userId } }),
+    ])
     const usedSeconds = used._sum.durationSec ?? 0
     if (usedSeconds + durationSec > FREE_LIMITS.MAX_RECORDING_SECONDS) {
       return NextResponse.json({ error: "Combined recording time exceeds free tier limit of 30 minutes." }, { status: 403 })
     }
-  }
-
-  // Enforce composition count for free users
-  if (!isPro) {
-    const count = await db.composition.count({ where: { userId } })
     if (count >= FREE_LIMITS.MAX_SAVED_COMPOSITIONS) {
       return NextResponse.json(
         { error: "Free tier composition limit reached. Upgrade to Pro for unlimited saves." },

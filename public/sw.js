@@ -1,6 +1,6 @@
-const CACHE = "cadenz-v1"
+const CACHE = "cadenz-v2"
 
-// App shell routes to pre-cache
+// App shell routes to pre-cache on install
 const PRECACHE = ["/", "/dashboard", "/record", "/map", "/manifest.json"]
 
 self.addEventListener("install", (e) => {
@@ -19,21 +19,46 @@ self.addEventListener("activate", (e) => {
 })
 
 self.addEventListener("fetch", (e) => {
-  // Only cache GET requests; pass through API calls and auth routes
   if (e.request.method !== "GET") return
   const url = new URL(e.request.url)
-  if (url.pathname.startsWith("/api/") || url.pathname.startsWith("/api/auth")) return
 
-  e.respondWith(
-    fetch(e.request)
-      .then((res) => {
-        // Cache successful page responses
-        if (res.status === 200 && url.origin === location.origin) {
-          const clone = res.clone()
-          caches.open(CACHE).then((c) => c.put(e.request, clone))
-        }
-        return res
+  // Never intercept API or auth routes — always go to network
+  if (url.pathname.startsWith("/api/")) return
+
+  // Static assets (_next/static): cache-first, they're already content-hashed by Next.js
+  if (url.pathname.startsWith("/_next/static/")) {
+    e.respondWith(
+      caches.match(e.request).then((cached) => {
+        if (cached) return cached
+        return fetch(e.request).then((res) => {
+          if (res.status === 200) {
+            const clone = res.clone()
+            caches.open(CACHE).then((c) => c.put(e.request, clone))
+          }
+          return res
+        })
       })
-      .catch(() => caches.match(e.request))
+    )
+    return
+  }
+
+  // Navigation and page routes: stale-while-revalidate
+  // Respond immediately from cache (fast), then fetch fresh copy in the background
+  e.respondWith(
+    caches.open(CACHE).then((cache) => {
+      return cache.match(e.request).then((cached) => {
+        const fetchPromise = fetch(e.request)
+          .then((res) => {
+            if (res.status === 200 && url.origin === location.origin) {
+              cache.put(e.request, res.clone())
+            }
+            return res
+          })
+          .catch(() => cached) // offline fallback
+
+        // Return cached version immediately if available, otherwise wait for network
+        return cached ?? fetchPromise
+      })
+    })
   )
 })

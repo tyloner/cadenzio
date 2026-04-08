@@ -44,11 +44,13 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
             orderBy: { startedAt: "desc" },
             take: 20,
             include: {
-              composition: { select: { genre: true, scale: true, audioUrl: true } },
+              composition: { select: { genre: true, scale: true, audioUrl: true, instrument: true } },
               _count: { select: { likes: true, comments: true } },
               user: { select: { name: true, image: true } },
             },
           },
+          // Compositions for level progress — merged into the main query to avoid a second roundtrip
+          compositions: { select: { scale: true, instrument: true } },
         },
       },
     },
@@ -56,13 +58,8 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
 
   if (!profile) notFound()
 
-  // Query unique scales and instruments for level progress
-  const userCompositions = await db.composition.findMany({
-    where: { userId: profile.userId },
-    select: { scale: true, instrument: true },
-  })
-  const uniqueScales = new Set(userCompositions.map((c) => c.scale)).size
-  const uniqueInstruments = new Set(userCompositions.map((c) => c.instrument)).size
+  const uniqueScales = new Set(profile.user.compositions.map((c) => c.scale)).size
+  const uniqueInstruments = new Set(profile.user.compositions.map((c) => c.instrument)).size
 
   const isOwn = session?.user?.id === profile.userId
 
