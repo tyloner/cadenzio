@@ -122,8 +122,8 @@ export function CompositionPlayer({ midiEvents, bpmAvg, genre, instrument = "pia
 
     await Tone.start()
 
-    const bpm = (bpmAvg ?? 90) * speed
-    Tone.getTransport().bpm.value = bpm
+    Tone.getTransport().bpm.value = bpmAvg ?? 90
+    Tone.getTransport().playbackRate = speed
 
     const knownInstrument = (instrument in INSTRUMENT_CONFIG)
       ? instrument as InstrumentName
@@ -315,7 +315,7 @@ export function CompositionPlayer({ midiEvents, bpmAvg, genre, instrument = "pia
               key={s}
               onClick={() => {
                 setSpeed(s)
-                if (T.current) T.current.getTransport().bpm.value = (bpmAvg ?? 90) * s
+                if (T.current) T.current.getTransport().playbackRate = s
               }}
               className={`text-[10px] font-semibold px-1.5 py-0.5 rounded transition-colors leading-tight ${
                 speed === s ? "bg-wave text-white" : "text-muted hover:text-ink"

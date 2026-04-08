@@ -270,7 +270,10 @@ export function checkNewReveal(
 
 /** Human-readable description of a challenge requirement */
 export function challengeDescription(challengeId: ChallengeId): string {
-  const level = LEVELS.find((l) => l.challengeId === challengeId)
+  // The challengeId lives on the level that REVEALS the challenge; the actual
+  // requirements are on the NEXT level (the one being described).
+  const revealIdx = LEVELS.findIndex((l) => l.challengeId === challengeId)
+  const level = LEVELS[revealIdx + 1]
   if (!level?.requirement) return ""
   const req = level.requirement
   const parts: string[] = [`${req.compositions} compositions`]
@@ -284,7 +287,8 @@ export function challengeDescription(challengeId: ChallengeId): string {
 
 /** Japanese description */
 export function challengeDescriptionJa(challengeId: ChallengeId): string {
-  const level = LEVELS.find((l) => l.challengeId === challengeId)
+  const revealIdx = LEVELS.findIndex((l) => l.challengeId === challengeId)
+  const level = LEVELS[revealIdx + 1]
   if (!level?.requirement) return ""
   const req = level.requirement
   const parts: string[] = [`楽曲${req.compositions}曲`]
