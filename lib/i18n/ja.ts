@@ -133,8 +133,10 @@ const ja: Record<TranslationKey, string> = {
   "settings.upgraded.sub":  "サブスクリプションが有効になりました。すべての機能が利用可能です。",
 
   // Dashboard
+  "dashboard.title":       "フィード",
+  "dashboard.discover":    "作曲家を探す",
   "dashboard.empty.title": "まだ楽曲がありません",
-  "dashboard.empty.sub":   "最初のウォークを始めて、音楽を作りましょう。",
+  "dashboard.empty.sub":   "ウォークを始めて最初の楽曲を作るか、他の作曲家をフォローしてみましょう。",
   "dashboard.empty.cta":   "記録を開始",
 
   // Scale names

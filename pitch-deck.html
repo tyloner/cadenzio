@@ -1,0 +1,1994 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cadenz.io — Japan Launch Pitch Deck</title>
+<style>
+  :root {
+    --wave: #14B8A6;
+    --wave-light: #5EEAD4;
+    --wave-dark: #0D9488;
+    --beat: #F97316;
+    --beat-light: #FB923C;
+    --ink: #0F172A;
+    --ink-mid: #1E293B;
+    --ink-soft: #334155;
+    --mist: #F8FAFC;
+    --mist-dim: #E2E8F0;
+    --slate: #94A3B8;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    width: 100%; height: 100%;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--ink);
+    overflow: hidden;
+  }
+
+  /* ── SLIDE CONTAINER ─────────────────────────────── */
+  .deck {
+    width: 100vw; height: 100vh;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 60px;
+    opacity: 0;
+    transform: translateX(60px);
+    transition: opacity 0.5s cubic-bezier(.4,0,.2,1), transform 0.5s cubic-bezier(.4,0,.2,1);
+    pointer-events: none;
+    overflow: hidden;
+  }
+
+  .slide.active {
+    opacity: 1;
+    transform: translateX(0);
+    pointer-events: all;
+  }
+
+  .slide.exit {
+    opacity: 0;
+    transform: translateX(-60px);
+  }
+
+  /* ── NAV ─────────────────────────────────────────── */
+  .nav {
+    position: fixed;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    z-index: 100;
+    background: rgba(15,23,42,0.7);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 100px;
+    padding: 10px 20px;
+  }
+
+  .nav button {
+    background: none;
+    border: none;
+    color: var(--slate);
+    cursor: pointer;
+    font-size: 18px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all .2s;
+  }
+
+  .nav button:hover { color: var(--wave); background: rgba(20,184,166,.12); }
+
+  .slide-counter {
+    color: var(--mist);
+    font-size: 13px;
+    font-weight: 500;
+    min-width: 60px;
+    text-align: center;
+    letter-spacing: 0.05em;
+  }
+
+  .slide-dots {
+    display: flex;
+    gap: 6px;
+  }
+
+  .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--ink-soft);
+    transition: all .3s;
+    cursor: pointer;
+  }
+
+  .dot.active { background: var(--wave); transform: scale(1.4); }
+
+  /* ── SHARED LAYOUT HELPERS ───────────────────────── */
+  .slide-inner {
+    width: 100%;
+    max-width: 1100px;
+  }
+
+  .label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--wave);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .label::before {
+    content: '';
+    display: block;
+    width: 20px;
+    height: 2px;
+    background: var(--wave);
+    border-radius: 2px;
+  }
+
+  h1 {
+    font-size: clamp(36px, 5vw, 68px);
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+  }
+
+  h2 {
+    font-size: clamp(28px, 3.5vw, 46px);
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+  }
+
+  h3 {
+    font-size: clamp(18px, 2vw, 26px);
+    font-weight: 700;
+    line-height: 1.3;
+  }
+
+  p {
+    font-size: clamp(14px, 1.4vw, 18px);
+    line-height: 1.65;
+    color: var(--slate);
+  }
+
+  .teal { color: var(--wave); }
+  .orange { color: var(--beat); }
+  .white { color: var(--mist); }
+  .dim { color: var(--slate); }
+
+  .highlight {
+    background: linear-gradient(135deg, var(--wave), var(--wave-light));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .highlight-orange {
+    background: linear-gradient(135deg, var(--beat), #FBBF24);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* ── GRID HELPERS ────────────────────────────────── */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+
+  /* ── CARD ────────────────────────────────────────── */
+  .card {
+    background: rgba(30,41,59,0.6);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 16px;
+    padding: 24px;
+    backdrop-filter: blur(8px);
+  }
+
+  .card-teal {
+    background: rgba(20,184,166,0.08);
+    border-color: rgba(20,184,166,0.2);
+  }
+
+  .card-orange {
+    background: rgba(249,115,22,0.08);
+    border-color: rgba(249,115,22,0.2);
+  }
+
+  /* ── STAT PILL ───────────────────────────────────── */
+  .stat {
+    text-align: center;
+  }
+
+  .stat-num {
+    font-size: clamp(28px, 3.5vw, 52px);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+
+  .stat-label {
+    font-size: 12px;
+    color: var(--slate);
+    font-weight: 500;
+    letter-spacing: 0.05em;
+  }
+
+  /* ── TAG ─────────────────────────────────────────── */
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(20,184,166,0.12);
+    border: 1px solid rgba(20,184,166,0.25);
+    color: var(--wave-light);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 5px 12px;
+    border-radius: 100px;
+  }
+
+  .tag-orange {
+    background: rgba(249,115,22,0.12);
+    border-color: rgba(249,115,22,0.25);
+    color: var(--beat-light);
+  }
+
+  /* ── STEP ────────────────────────────────────────── */
+  .step {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .step-num {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--wave), var(--wave-dark));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 800;
+    color: white;
+    margin-top: 2px;
+  }
+
+  /* ── LOGO SVG ────────────────────────────────────── */
+  .logo-svg path { stroke: var(--wave); }
+  .logo-svg circle { fill: var(--wave); }
+  .logo-svg line { stroke: var(--wave); }
+  .logo-svg text { fill: var(--mist); }
+
+  /* ── BG DECORATIONS ──────────────────────────────── */
+  .bg-wave-circle {
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .content { position: relative; z-index: 1; }
+
+  /* ── WAVEFORM DECORATION ─────────────────────────── */
+  .waveform {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    height: 40px;
+  }
+
+  .waveform span {
+    display: block;
+    width: 3px;
+    border-radius: 3px;
+    background: var(--wave);
+    animation: wave 1.4s ease-in-out infinite;
+  }
+
+  @keyframes wave {
+    0%, 100% { transform: scaleY(0.4); opacity: 0.4; }
+    50% { transform: scaleY(1); opacity: 1; }
+  }
+
+  /* ── ROUTE PATH DECORATION ───────────────────────── */
+  .route-preview {
+    width: 100%;
+    max-width: 320px;
+    opacity: 0.6;
+  }
+
+  /* ── PROGRESS BAR ────────────────────────────────── */
+  .progress-bar {
+    height: 4px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 8px;
+  }
+
+  .progress-fill {
+    height: 100%;
+    border-radius: 4px;
+    background: linear-gradient(90deg, var(--wave), var(--beat));
+  }
+
+  /* ── TIMELINE ────────────────────────────────────── */
+  .timeline {
+    position: relative;
+    padding-left: 28px;
+  }
+
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 8px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: linear-gradient(to bottom, var(--wave), var(--beat), rgba(20,184,166,0.1));
+    border-radius: 2px;
+  }
+
+  .timeline-item {
+    position: relative;
+    margin-bottom: 24px;
+  }
+
+  .timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -24px;
+    top: 6px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--wave);
+    border: 2px solid var(--ink);
+  }
+
+  .timeline-item.future::before {
+    background: var(--beat);
+  }
+
+  /* ── EMOJI ICON ──────────────────────────────────── */
+  .icon-block {
+    width: 48px;
+    height: 48px;
+    background: rgba(20,184,166,0.12);
+    border: 1px solid rgba(20,184,166,0.2);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    margin-bottom: 12px;
+  }
+
+  .icon-block-orange {
+    background: rgba(249,115,22,0.12);
+    border-color: rgba(249,115,22,0.2);
+  }
+
+  /* ── PARTNERSHIP LOGO ────────────────────────────── */
+  .partner-pill {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(30,41,59,0.8);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 14px 18px;
+    transition: all .2s;
+  }
+
+  .partner-pill:hover {
+    border-color: rgba(20,184,166,0.3);
+    background: rgba(20,184,166,0.06);
+  }
+
+  .partner-icon {
+    font-size: 24px;
+  }
+
+  .partner-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--mist);
+  }
+
+  .partner-sub {
+    font-size: 11px;
+    color: var(--slate);
+    margin-top: 2px;
+  }
+
+  /* ── FEATURE ROW ─────────────────────────────────── */
+  .feature-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+  }
+
+  .feature-row:last-child { border-bottom: none; }
+
+  .check {
+    width: 22px;
+    height: 22px;
+    min-width: 22px;
+    border-radius: 50%;
+    background: rgba(20,184,166,0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+  }
+
+  /* ══════════════════════════════════════════════════
+     SLIDE 01 — COVER
+  ══════════════════════════════════════════════════ */
+  #slide-01 {
+    background: var(--ink);
+  }
+
+  #slide-01 .bg-wave-circle:nth-child(1) {
+    width: 700px; height: 700px;
+    background: radial-gradient(circle, rgba(20,184,166,0.12) 0%, transparent 70%);
+    top: -200px; right: -150px;
+  }
+
+  #slide-01 .bg-wave-circle:nth-child(2) {
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, rgba(249,115,22,0.08) 0%, transparent 70%);
+    bottom: -100px; left: -50px;
+  }
+
+  /* ══════════════════════════════════════════════════
+     SLIDE — DARK VARIANT
+  ══════════════════════════════════════════════════ */
+  .slide-dark { background: var(--ink); }
+  .slide-mid  { background: var(--ink-mid); }
+
+  .slide-teal-accent {
+    background: linear-gradient(135deg, rgba(20,184,166,0.06) 0%, var(--ink) 50%);
+  }
+
+  /* ── PRICING TABLE ───────────────────────────────── */
+  .price-col {
+    background: rgba(30,41,59,0.5);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 20px;
+    padding: 28px;
+  }
+
+  .price-col.featured {
+    background: rgba(20,184,166,0.08);
+    border-color: rgba(20,184,166,0.3);
+    position: relative;
+  }
+
+  .price-col.featured::before {
+    content: 'PRO';
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, var(--wave), var(--wave-dark));
+    color: white;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.15em;
+    padding: 4px 14px;
+    border-radius: 100px;
+  }
+
+  .price-amount {
+    font-size: 36px;
+    font-weight: 800;
+    color: var(--mist);
+    letter-spacing: -0.02em;
+  }
+
+  .price-period {
+    font-size: 14px;
+    color: var(--slate);
+    margin-left: 4px;
+  }
+
+  /* ── GANTT-LITE ──────────────────────────────────── */
+  .gantt-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 12px;
+  }
+
+  .gantt-label {
+    width: 160px;
+    min-width: 160px;
+    font-size: 13px;
+    color: var(--slate);
+    font-weight: 500;
+  }
+
+  .gantt-bar-wrap {
+    flex: 1;
+    height: 22px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 100px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .gantt-bar {
+    height: 100%;
+    border-radius: 100px;
+    position: absolute;
+    top: 0;
+  }
+
+  /* ── SCROLL INDICATOR ────────────────────────────── */
+  .scroll-hint {
+    position: fixed;
+    top: 50%;
+    right: 24px;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    z-index: 50;
+    opacity: 0.4;
+  }
+
+  .scroll-hint span {
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: var(--wave);
+    display: block;
+  }
+
+  /* ── KEYBOARD HINT ───────────────────────────────── */
+  .key-hint {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    font-size: 11px;
+    color: rgba(148,163,184,0.5);
+    z-index: 50;
+    letter-spacing: 0.05em;
+  }
+
+  .slide-num-badge {
+    position: fixed;
+    top: 24px;
+    left: 24px;
+    font-size: 11px;
+    font-weight: 700;
+    color: rgba(148,163,184,0.4);
+    z-index: 50;
+    letter-spacing: 0.1em;
+  }
+
+  /* ── FULLSCREEN BTN ──────────────────────────────── */
+  .fullscreen-btn {
+    position: fixed;
+    top: 24px;
+    right: 100px;
+    background: rgba(30,41,59,0.6);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px;
+    color: var(--slate);
+    cursor: pointer;
+    padding: 6px 10px;
+    font-size: 12px;
+    z-index: 100;
+    transition: all .2s;
+    backdrop-filter: blur(8px);
+  }
+
+  .fullscreen-btn:hover { color: var(--wave); border-color: rgba(20,184,166,0.3); }
+</style>
+</head>
+<body>
+
+<div class="deck" id="deck">
+
+  <!-- ════════════════════════════════════════════════
+       SLIDE 01 — COVER
+  ════════════════════════════════════════════════ -->
+  <div class="slide slide-dark active" id="slide-01">
+    <div class="bg-wave-circle"></div>
+    <div class="bg-wave-circle"></div>
+    <div class="content" style="width:100%;max-width:1100px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:40px;">
+        <div style="flex:1;min-width:300px;">
+
+          <!-- Logo -->
+          <div style="margin-bottom:40px;">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 44" fill="none" width="180">
+              <path d="M8 36 C8 36 14 22 19 19 C24 16 27 24 32 21 C37 18 39 11 42 7" stroke="#14B8A6" stroke-width="2.8" stroke-linecap="round" fill="none"/>
+              <circle cx="42" cy="7" r="3.5" fill="#14B8A6"/>
+              <line x1="45.5" y1="7" x2="45.5" y2="24" stroke="#14B8A6" stroke-width="2.2" stroke-linecap="round"/>
+              <text x="54" y="32" font-family="'Inter', sans-serif" font-size="24" font-weight="800" fill="#F8FAFC" letter-spacing="-0.5">cadenz</text>
+              <text x="54" y="42" font-family="'Inter', sans-serif" font-size="9" font-weight="600" fill="#14B8A6" letter-spacing="0.15em">IO</text>
+            </svg>
+          </div>
+
+          <div class="label">Japan Launch · 2026</div>
+
+          <h1 style="color:var(--mist);margin-bottom:20px;">
+            Every Step,<br>
+            <span class="highlight">a Symphony.</span>
+          </h1>
+
+          <p style="font-size:18px;max-width:500px;margin-bottom:36px;">
+            The app that turns your walks and runs into original music — powered by GPS, played by AI, shared with the world.
+          </p>
+
+          <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:24px;">
+            <span class="tag">🎵 GPS-to-Music</span>
+            <span class="tag">🗺️ Location-Aware</span>
+            <span class="tag-orange tag">🇯🇵 Japan Market</span>
+          </div>
+
+          <!-- Key stats strip -->
+          <div style="display:flex;gap:0;border:1px solid rgba(255,255,255,0.07);border-radius:12px;overflow:hidden;">
+            <div style="flex:1;padding:12px 14px;border-right:1px solid rgba(255,255,255,0.06);text-align:center;">
+              <div style="font-size:16px;font-weight:800;color:var(--wave);">¥2.7B</div>
+              <div style="font-size:10px;color:var(--slate);margin-top:2px;">JP music market</div>
+            </div>
+            <div style="flex:1;padding:12px 14px;border-right:1px solid rgba(255,255,255,0.06);text-align:center;">
+              <div style="font-size:16px;font-weight:800;color:var(--wave);">10M DL</div>
+              <div style="font-size:10px;color:var(--slate);margin-top:2px;">DQ Walk in 4 days</div>
+            </div>
+            <div style="flex:1;padding:12px 14px;border-right:1px solid rgba(255,255,255,0.06);text-align:center;">
+              <div style="font-size:16px;font-weight:800;color:var(--beat);">73%</div>
+              <div style="font-size:10px;color:var(--slate);margin-top:2px;">runners use music</div>
+            </div>
+            <div style="flex:1;padding:12px 14px;text-align:center;">
+              <div style="font-size:16px;font-weight:800;color:var(--wave);">96M</div>
+              <div style="font-size:10px;color:var(--slate);margin-top:2px;">LINE MAU</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right decoration -->
+        <div style="flex:0;min-width:260px;display:flex;flex-direction:column;align-items:center;gap:20px;">
+          <!-- Animated waveform -->
+          <div class="card card-teal" style="width:260px;padding:28px;text-align:center;">
+            <div style="font-size:13px;color:var(--slate);margin-bottom:16px;font-weight:600;">Live Composition</div>
+            <div class="waveform" style="justify-content:center;height:48px;">
+              <span style="height:12px;animation-delay:0s;"></span>
+              <span style="height:28px;animation-delay:.1s;"></span>
+              <span style="height:40px;animation-delay:.2s;"></span>
+              <span style="height:48px;animation-delay:.3s;"></span>
+              <span style="height:36px;animation-delay:.4s;"></span>
+              <span style="height:44px;animation-delay:.5s;"></span>
+              <span style="height:20px;animation-delay:.6s;"></span>
+              <span style="height:38px;animation-delay:.7s;"></span>
+              <span style="height:48px;animation-delay:.8s;"></span>
+              <span style="height:30px;animation-delay:.9s;"></span>
+              <span style="height:16px;animation-delay:1s;"></span>
+              <span style="height:42px;animation-delay:1.1s;"></span>
+              <span style="height:26px;animation-delay:1.2s;"></span>
+              <span style="height:38px;animation-delay:1.3s;"></span>
+              <span style="height:22px;animation-delay:1.4s;"></span>
+            </div>
+            <div style="margin-top:16px;">
+              <svg viewBox="0 0 220 80" fill="none" xmlns="http://www.w3.org/2000/svg" width="100%">
+                <path d="M10 60 C30 55 45 30 65 25 C85 20 95 40 115 38 C135 36 145 15 165 12 C175 11 185 18 200 22" stroke="#14B8A6" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.7"/>
+                <circle cx="200" cy="22" r="4" fill="#F97316"/>
+                <circle cx="10" cy="60" r="5" fill="#14B8A6" stroke="white" stroke-width="2"/>
+              </svg>
+              <div style="font-size:11px;color:var(--slate);margin-top:4px;">🏃 Shibuya → Harajuku · Classical</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:16px;">
+            <div class="stat">
+              <div class="stat-num" style="font-size:28px;color:var(--wave);">8+</div>
+              <div class="stat-label">Scales</div>
+            </div>
+            <div class="stat">
+              <div class="stat-num" style="font-size:28px;color:var(--beat);">5</div>
+              <div class="stat-label">Genres</div>
+            </div>
+            <div class="stat">
+              <div class="stat-num" style="font-size:28px;color:var(--wave);">4</div>
+              <div class="stat-label">Instruments</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════
+       SLIDE 02 — THE INSIGHT
+  ════════════════════════════════════════════════ -->
+  <div class="slide slide-dark" id="slide-02">
+    <div class="bg-wave-circle" style="width:600px;height:600px;background:radial-gradient(circle,rgba(20,184,166,0.08) 0%,transparent 70%);top:-200px;left:-100px;position:absolute;"></div>
+    <div class="content slide-inner">
+      <div class="label">The Opportunity</div>
+      <h2 style="color:var(--mist);margin-bottom:12px;">Japan is the perfect<br><span class="highlight">first market.</span></h2>
+      <p style="margin-bottom:40px;max-width:600px;">Three cultural forces converge in Japan that make Cadenz.io uniquely positioned to win — forces that exist nowhere else in the world at this scale.</p>
+
+      <div class="grid-3">
+        <div class="card card-teal">
+          <div class="icon-block" style="font-size:32px;width:56px;height:56px;">🎵</div>
+          <h3 style="color:var(--mist);margin-bottom:8px;">Music Nation</h3>
+          <p style="font-size:14px;">Japan is the world's <strong style="color:var(--wave);">#2 music market</strong> at $2.7B. Music education is nearly universal. 65% of Japanese own a musical instrument.</p>
+        </div>
+        <div class="card card-teal">
+          <div class="icon-block" style="font-size:32px;width:56px;height:56px;">🚶</div>
+          <h3 style="color:var(--mist);margin-bottom:8px;">Walking Culture</h3>
+          <p style="font-size:14px;">Japanese walk <strong style="color:var(--wave);">7,800 steps/day</strong> on average — among the highest globally. <em>Sanpo</em> (散歩) is a beloved cultural tradition. 6M+ active runners.</p>
+        </div>
+        <div class="card card-orange">
+          <div class="icon-block icon-block-orange" style="font-size:32px;width:56px;height:56px;">🎮</div>
+          <h3 style="color:var(--mist);margin-bottom:8px;">Gamification DNA</h3>
+          <p style="font-size:14px;">Pokémon GO earned <strong style="color:var(--beat);">$200M+/year</strong> in Japan alone. Dragon Quest Walk hit <strong style="color:var(--beat);">10M downloads in 4 days</strong>. Japan invented the walking game.</p>
+        </div>
+      </div>
+
+      <div style="margin-top:28px;display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+        <span class="tag">🌸 Hanami walking routes</span>
+        <span class="tag">⛰️ Trail running (UTMF)</span>
+        <span class="tag">🏙️ Urban commuter walks</span>
+        <span class="tag">🎵 Karaoke culture</span>
+        <span class="tag-orange tag">🗾 60M smartphone users</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════
+       SLIDE 03 — THE PROBLEM
+  ════════════════════════════════════════════════ -->
+  <div class="slide slide-mid" id="slide-03">
+    <div class="content slide-inner">
+      <div class="label">The Problem</div>
+      <div class="grid-2" style="align-items:center;gap:48px;">
+        <div>
+          <h2 style="color:var(--mist);margin-bottom:20px;">Fitness is data-rich<br>but <span style="color:var(--slate);text-decoration:line-through;opacity:0.6;">soul-poor.</span></h2>
+          <p style="margin-bottom:24px;">You finish a 5km run through Yoyogi Park. You get: your splits, your heart rate, a polyline on a map. Then what? You scroll past it tomorrow.</p>
+          <p style="margin-bottom:32px;">The route you ran was <strong style="color:var(--mist);">unique to you</strong>, shaped by your pace, your turns, your mood. But nothing captures that.</p>
+
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <div class="feature-row">
+              <div style="width:22px;height:22px;min-width:22px;border-radius:50%;background:rgba(239,68,68,0.15);display:flex;align-items:center;justify-content:center;font-size:11px;">✕</div>
+              <span style="font-size:15px;color:var(--slate);">Strava gives you pace graphs — not memories</span>
+            </div>
+            <div class="feature-row">
+              <div style="width:22px;height:22px;min-width:22px;border-radius:50%;background:rgba(239,68,68,0.15);display:flex;align-items:center;justify-content:center;font-size:11px;">✕</div>
+              <span style="font-size:15px;color:var(--slate);">Apple Fitness shows calories — not creativity</span>
+            </div>
+            <div class="feature-row">
+              <div style="width:22px;height:22px;min-width:22px;border-radius:50%;background:rgba(239,68,68,0.15);display:flex;align-items:center;justify-content:center;font-size:11px;">✕</div>
+              <span style="font-size:15px;color:var(--slate);">No app turns movement into something you want to share</span>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div class="card" style="padding:0;overflow:hidden;">
+            <div style="background:rgba(15,23,42,0.8);padding:20px;border-bottom:1px solid rgba(255,255,255,0.06);">
+              <div style="font-size:12px;color:var(--slate);font-weight:600;letter-spacing:.05em;">TYPICAL FITNESS APP — AFTER YOUR RUN</div>
+            </div>
+            <div style="padding:24px;display:flex;flex-direction:column;gap:16px;">
+              <div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:14px;">
+                <div style="font-size:11px;color:var(--slate);margin-bottom:6px;">DISTANCE</div>
+                <div style="font-size:24px;font-weight:800;color:var(--mist);">5.2 <span style="font-size:14px;color:var(--slate);">km</span></div>
+              </div>
+              <div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:14px;">
+                <div style="font-size:11px;color:var(--slate);margin-bottom:6px;">AVG PACE</div>
+                <div style="font-size:24px;font-weight:800;color:var(--mist);">5:42 <span style="font-size:14px;color:var(--slate);">/km</span></div>
+              </div>
+              <div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:14px;text-align:center;">
+                <div style="font-size:13px;color:var(--slate);">…and that's it. Forgotten by tomorrow.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════
+       SLIDE 04 — THE SOLUTION
+  ════════════════════════════════════════════════ -->
+  <div class="slide slide-dark" id="slide-04">
+    <div class="bg-wave-circle" style="width:800px;height:800px;background:radial-gradient(circle,rgba(20,184,166,0.1) 0%,transparent 65%);top:-250px;right:-200px;position:absolute;"></div>
+    <div class="content slide-inner">
+      <div class="label">The Solution</div>
+      <h2 style="color:var(--mist);margin-bottom:16px;">Your route becomes<br><span class="highlight">your composition.</span></h2>
+      <p style="max-width:580px;margin-bottom:40px;">Cadenz.io converts every GPS point into a musical note. Your speed becomes tempo. Your turns become melody. Your route becomes a piece of music that only you could have written.</p>
+
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:40px;">
+
+        <div class="card card-teal" style="flex:1;min-width:180px;text-align:center;padding:20px 16px;">
+          <div style="font-size:32px;margin-bottom:8px;">🗺️</div>
+          <div style="font-size:13px;font-weight:700;color:var(--mist);margin-bottom:4px;">GPS Route</div>
+          <div style="font-size:12px;color:var(--slate);">Your walk or run — anywhere in Japan</div>
+        </div>
+
+        <div style="font-size:28px;color:var(--wave);font-weight:300;">→</div>
+
+        <div class="card card-teal" style="flex:1;min-width:180px;text-align:center;padding:20px 16px;">
+          <div style="font-size:32px;margin-bottom:8px;">⚙️</div>
+          <div style="font-size:13px;font-weight:700;color:var(--mist);margin-bottom:4px;">Music Engine</div>
+          <div style="font-size:12px;color:var(--slate);">Bearing → melody · Speed → tempo</div>
+        </div>
+
+        <div style="font-size:28px;color:var(--wave);font-weight:300;">→</div>
+
+        <div class="card" style="flex:1;min-width:180px;text-align:center;padding:20px 16px;background:rgba(249,115,22,0.08);border-color:rgba(249,115,22,0.2);">
+          <div style="font-size:32px;margin-bottom:8px;">🎵</div>
+          <div style="font-size:13px;font-weight:700;color:var(--mist);margin-bottom:4px;">Your Composition</div>
+          <div style="font-size:12px;color:var(--slate);">Unique. Playable. Shareable.</div>
+        </div>
+
+      </div>
+
+      <div class="grid-3">
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div class="feature-row">
+            <div class="check">🎹</div>
+            <span style="font-size:14px;color:var(--slate);">Real Salamander Grand Piano samples</span>
+          </div>
+          <div class="feature-row">
+            <div class="check">🎻</div>
+            <span style="font-size:14px;color:var(--slate);">FM Violin synthesis</span>
+          </div>
+          <div class="feature-row">
+            <div class="check">🎛️</div>
+            <span style="font-size:14px;color:var(--slate);">Genre-driven synths (Synth, Drums)</span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div class="feature-row">
+            <div class="check">🎼</div>
+            <span style="font-size:14px;color:var(--slate);">8 scales — Major, Blues, Dorian, Lydian…</span>
+          </div>
+          <div class="feature-row">
+            <div class="check">🎧</div>
+            <span style="font-size:14px;color:var(--slate);">5 genres — Classical, Jazz, Blues, Ambient…</span>
+          </div>
+          <div class="feature-row">
+            <div class="check">🌊</div>
+            <span style="font-size:14px;color:var(--slate);">Reverb, pad harmonics, rhythm tracks</span>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div class="feature-row">
+            <div class="check">📍</div>
+            <span style="font-size:14px;color:var(--slate);">Route map with Strava-style styling</span>
+          </div>
+          <div class="feature-row">
+            <div class="check">📤</div>
+            <span style="font-size:14px;color:var(--slate);">OG share cards for social media</span>
+          </div>
+          <div class="feature-row">
+            <div class="check">📊</div>
+            <span style="font-size:14px;color:var(--slate);">BPM, duration, distance analysis</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════
+       SLIDE 05 — HOW IT WORKS
+  ════════════════════════════════════════════════ -->
+  <div class="slide slide-mid" id="slide-05">
+    <div class="content slide-inner">
+      <div class="label">Product Flow</div>
+      <h2 style="color:var(--mist);margin-bottom:36px;">Three steps.<br><span class="highlight">Infinite compositions.</span></h2>
+
+      <div style="display:flex;gap:24px;flex-wrap:wrap;">
+
+        <div class="card" style="flex:1;min-width:240px;position:relative;overflow:hidden;">
+          <div style="position:absolute;top:0;right:0;font-size:80px;opacity:0.05;line-height:1;padding:8px;">01</div>
+          <div class="step-num" style="margin-bottom:16px;">1</div>
+          <h3 style="color:var(--mist);margin-bottom:10px;">Set Your Stage</h3>
+          <p style="font-size:14px;margin-bottom:16px;">Choose your genre (Classical, Blues, Jazz, Ambient, Electronic), scale, starting note, and instrument (Piano, Violin, Synth, Drums) before you go.</p>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <span class="tag" style="font-size:11px;">🎹 Piano</span>
+            <span class="tag" style="font-size:11px;">🎻 Violin</span>
+            <span class="tag-orange tag" style="font-size:11px;">🎵 Classical</span>
+          </div>
+        </div>
+
+        <div class="card card-teal" style="flex:1;min-width:240px;position:relative;overflow:hidden;">
+          <div style="position:absolute;top:0;right:0;font-size:80px;opacity:0.05;line-height:1;padding:8px;">02</div>
+          <div class="step-num" style="margin-bottom:16px;">2</div>
+          <h3 style="color:var(--mist);margin-bottom:10px;">Walk, Run, Explore</h3>
+          <p style="font-size:14px;margin-bottom:16px;">Live GPS tracks your route in real-time. Every point becomes a note. Your pace sets the tempo. Direction changes shape the melody.</p>
+          <div style="background:rgba(20,184,166,0.1);border-radius:10px;padding:12px;">
+            <div style="font-size:12px;color:var(--slate);margin-bottom:4px;">Speed → Duration</div>
+            <div style="font-size:12px;color:var(--slate);">Walk (slow) = whole notes · Sprint = 16th notes</div>
+            <div style="height:1px;background:rgba(255,255,255,0.06);margin:8px 0;"></div>
+            <div style="font-size:12px;color:var(--slate);">Bearing Δ → Scale Steps Up/Down</div>
+          </div>
+        </div>
+
+        <div class="card" style="flex:1;min-width:240px;position:relative;overflow:hidden;background:rgba(249,115,22,0.06);border-color:rgba(249,115,22,0.15);">
+          <div style="position:absolute;top:0;right:0;font-size:80px;opacity:0.05;line-height:1;padding:8px;">03</div>
+          <div class="step-num" style="background:linear-gradient(135deg,var(--beat),#FBBF24);margin-bottom:16px;">3</div>
+          <h3 style="color:var(--mist);margin-bottom:10px;">Listen &amp; Share</h3>
+          <p style="font-size:14px;margin-bottom:16px;">Your composition plays instantly. Share it with followers, explore others' routes on the world map, earn badges as you compose more.</p>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <span class="tag-orange tag" style="font-size:11px;">🏆 Level up</span>
+            <span class="tag-orange tag" style="font-size:11px;">❤️ Like &amp; follow</span>
+            <span class="tag-orange tag" style="font-size:11px;">🌍 World map</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════
+       SLIDE 06 — PRODUCT TODAY
+  ════════════════════════════════════════════════ -->
+  <div class="slide slide-dark" id="slide-06">
+    <div class="content slide-inner">
+      <div class="label">Live Product</div>
+      <h2 style="color:var(--mist);margin-bottom:8px;">Fully working PWA,<br><span class="highlight">ready to ship.</span></h2>
+      <p style="margin-bottom:32px;max-width:600px;">Built on Next.js 16 + Tone.js + Supabase. Real-time GPS, web-audio synthesis, social graph — production-ready today.</p>
+
+      <div class="grid-2" style="gap:24px;">
+        <div>
+          <div style="font-size:12px;font-weight:700;color:var(--wave);letter-spacing:.1em;text-transform:uppercase;margin-bottom:14px;">12 screens shipped</div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <span class="tag" style="font-size:11px;">🏠 Feed / Dashboard</span>
+              <span class="tag" style="font-size:11px;">🎙️ Record</span>
+              <span class="tag" style="font-size:11px;">🎵 Activity Detail</span>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <span class="tag" style="font-size:11px;">👤 Profile</span>
+              <span class="tag" style="font-size:11px;">🗺️ World Map</span>
+              <span class="tag" style="font-size:11px;">🔔 Notifications</span>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <span class="tag" style="font-size:11px;">⚙️ Settings</span>
+              <span class="tag" style="font-size:11px;">💳 Upgrade / Billing</span>
+              <span class="tag" style="font-size:11px;">📜 Legal</span>
+            </div>
+          </div>
+
+          <div style="height:1px;background:rgba(255,255,255,0.06);margin:20px 0;"></div>
+
+          <div style="font-size:12px;font-weight:700;color:var(--wave);letter-spacing:.1em;text-transform:uppercase;margin-bottom:14px;">Social layer</div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div class="feature-row">
+              <div class="check">❤️</div>
+              <span style="font-size:14px;color:var(--slate);">Likes, comments, follows with notifications</span>
+            </div>
+            <div class="feature-row">
+              <div class="check">🌍</div>
+              <span style="font-size:14px;color:var(--slate);">Global composition map (50 public routes)</span>
+            </div>
+            <div class="feature-row">
+              <div class="check">👤</div>
+              <span style="font-size:14px;color:var(--slate);">Personae + style tags + level badges</span>
+            </div>
+            <div class="feature-row">
+              <div class="check">📤</div>
+              <span style="font-size:14px;color:var(--slate);">OG share cards + Web Share API</span>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div style="font-size:12px;font-weight:700;color:var(--beat);letter-spacing:.1em;text-transform:uppercase;margin-bottom:14px;">Gamification system</div>
+          <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;">
+            <div class="card" style="padding:14px;display:flex;align-items:center;justify-content:space-between;">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <span style="font-size:20px;">🎵</span>
+                <div>
+                  <div style="font-size:13px;font-weight:700;color:var(--mist);">Opus Prima</div>
+                  <div style="font-size:11px;color:var(--slate);">First composition</div>
+                </div>
+              </div>
+              <span class="tag" style="font-size:10px;">Level 1</span>
+            </div>
+            <div class="card" style="padding:14px;display:flex;align-items:center;justify-content:space-between;">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <span style="font-size:20px;">🎼</span>
+                <div>
+                  <div style="font-size:13px;font-weight:700;color:var(--mist);">Repertoire</div>
+                  <div style="font-size:11px;color:var(--slate);">10+ compositions</div>
+                </div>
+              </div>
+              <span class="tag" style="font-size:10px;">Level 2</span>
+            </div>
+            <div class="card" style="padding:14px;display:flex;align-items:center;justify-content:space-between;background:rgba(249,115,22,0.06);border-color:rgba(249,115,22,0.15);">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <span style="font-size:20px;">🏆</span>
+                <div>
+                  <div style="font-size:13px;font-weight:700;color:var(--mist);">Virtuoso</div>
+                  <div style="font-size:11px;color:var(--slate);">30+ compositions</div>
+                </div>
+              </div>
+              <span class="tag-orange tag" style="font-size:10px;">Level 4</span>
+            </div>
+          </div>
+
+          <div style="font-size:12px;font-weight:700;color:var(--wave);letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px;">Persona generation</div>
+          <div class="card card-teal" style="padding:14px;">
+            <div style="font-size:13px;color:var(--slate);">Walk data + genre + pace =</div>
+            <div style="font-size:18px;font-weight:800;color:var(--mist);margin:4px 0;">"Andante Pilgrim"</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">
+              <span class="tag" style="font-size:10px;">classical</span>
+              <span class="tag" style="font-size:10px;">contemplative</span>
+              <span class="tag" style="font-size:10px;">melodic-explorer</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════
+       SLIDE 07 — JAPAN MARKET
+  ════════════════════════════════════════════════ -->
+  <div class="slide slide-mid" id="slide-07">
+    <div class="content slide-inner">
+      <div class="label">Market Size</div>
+      <h2 style="color:var(--mist);margin-bottom:36px;">A <span class="highlight">¥900B+</span> opportunity<br>at the intersection of three markets.</h2>
+
+      <div class="grid-3" style="margin-bottom:32px;">
+        <div class="card card-teal" style="text-align:center;">
+          <div style="font-size:32px;margin-bottom:8px;">🎵</div>
+          <div class="stat-num highlight">¥350B</div>
+          <div class="stat-label" style="margin-top:6px;">Digital Music Market</div>
+          <div style="font-size:12px;color:var(--slate);margin-top:8px;line-height:1.5;">Japan is #2 globally. Streaming growing 18% YoY. Music education near-universal.</div>
+        </div>
+        <div class="card card-teal" style="text-align:center;">
+          <div style="font-size:32px;margin-bottom:8px;">🏃</div>
+          <div class="stat-num highlight">¥280B</div>
+          <div class="stat-label" style="margin-top:6px;">Fitness App Market</div>
+          <div style="font-size:12px;color:var(--slate);margin-top:8px;line-height:1.5;">6M+ registered runners. 35M+ regular walkers. Post-COVID fitness surge.</div>
+        </div>
+        <div class="card" style="text-align:center;background:rgba(249,115,22,0.08);border-color:rgba(249,115,22,0.2);">
+          <div style="font-size:32px;margin-bottom:8px;">🎮</div>
+          <div class="stat-num highlight-orange">¥270B+</div>
+          <div class="stat-label" style="margin-top:6px;">Mobile Gaming Revenue</div>
+          <div style="font-size:12px;color:var(--slate);margin-top:8px;line-height:1.5;">Highest mobile ARPU globally. Japanese users spend 3× US average on apps.</div>
+        </div>
+      </div>
+
+      <!-- White space banner -->
+      <div style="margin-bottom:20px;padding:12px 18px;background:linear-gradient(90deg,rgba(20,184,166,0.1),rgba(249,115,22,0.08));border:1px solid rgba(20,184,166,0.25);border-radius:12px;display:flex;align-items:center;gap:12px;">
+        <span style="font-size:20px;">🏆</span>
+        <div style="font-size:13px;color:var(--mist);"><strong style="color:var(--wave);">White space confirmed:</strong> No Japanese app currently combines GPS route recording with music composition. Zero direct competitors. <strong style="color:var(--mist);">330,000+ Tokyo Marathon applicants</strong> for 38,000 spots — the market is hungry and untapped.</div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card" style="padding:20px;">
+          <div style="font-size:12px;font-weight:700;color:var(--wave);letter-spacing:.1em;text-transform:uppercase;margin-bottom:14px;">Comparable launches in Japan</div>
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <span style="font-size:20px;">🎮</span>
+                <div>
+                  <div style="font-size:13px;font-weight:700;color:var(--mist);">Pokémon GO</div>
+                  <div style="font-size:11px;color:var(--slate);">AR + GPS + walking</div>
+                </div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-size:14px;font-weight:700;color:var(--wave);">55M DL</div>
+                <div style="font-size:11px;color:var(--slate);">Japan: Niantic's #1 revenue market</div>
+              </div>
+            </div>
+            <div style="height:1px;background:rgba(255,255,255,0.05);"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <span style="font-size:20px;">⚔️</span>
+                <div>
+                  <div style="font-size:13px;font-weight:700;color:var(--mist);">Dragon Quest Walk</div>
+                  <div style="font-size:11px;color:var(--slate);">GPS + walking + J-RPG (Square Enix)</div>
+                </div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-size:14px;font-weight:700;color:var(--wave);">10M DL</div>
+                <div style="font-size:11px;color:var(--slate);">in 4 days · $400M+ lifetime revenue</div>
+              </div>
+            </div>
+            <div style="height:1px;background:rgba(255,255,255,0.05);"></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <div style="display:flex;align-items:center;gap:10px;">
+                <span style="font-size:20px;">🌸</span>
+                <div>
+                  <div style="font-size:13px;font-weight:700;color:var(--mist);">Pikmin Bloom</div>
+                  <div style="font-size:11px;color:var(--slate);">Nintendo × Niantic — "walk to create"</div>
+                </div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-size:14px;font-weight:700;color:var(--wave);">#1 JP</div>
+                <div style="font-size:11px;color:var(--slate);">App Store at launch (2021)</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="padding:20px;">
+          <div style="font-size:12px;font-weight:700;color:var(--beat);letter-spacing:.1em;text-transform:uppercase;margin-bottom:14px;">Our target segments</div>
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+                <span style="font-size:13px;color:var(--mist);font-weight:600;">🚶 Urban Sanpo Walkers</span>
+                <span style="font-size:12px;color:var(--slate);">35M</span>
+              </div>
+              <div class="progress-bar"><div class="progress-fill" style="width:85%;"></div></div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+                <span style="font-size:13px;color:var(--mist);font-weight:600;">🏃 Runners &amp; Joggers</span>
+                <span style="font-size:12px;color:var(--slate);">6M</span>
+              </div>
+              <div class="progress-bar"><div class="progress-fill" style="width:55%;"></div></div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+                <span style="font-size:13px;color:var(--mist);font-weight:600;">⛰️ Trail Runners / Hikers</span>
+                <span style="font-size:12px;color:var(--slate);">2.5M</span>
+              </div>
+              <div class="progress-bar"><div class="progress-fill" style="width:35%;"></div></div>
+            </div>
+            <div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+                <span style="font-size:13px;color:var(--mist);font-weight:600;">🎵 Music Creators</span>
+                <span style="font-size:12px;color:var(--slate);">8M+</span>
+              </div>
+              <div class="progress-bar"><div class="progress-fill" style="width:65%;"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════
+       SLIDE 08 — CULTURAL FIT
+  ════════════════════════════════════════════════ -->
+  <div class="slide slide-dark" id="slide-08">
+    <div class="bg-wave-circle" style="width:500px;height:500px;background:radial-gradient(circle,rgba(249,115,22,0.08) 0%,transparent 70%);bottom:-150px;right:-100px;position:absolute;"></div>
+    <div class="content slide-inner">
+      <div class="label">Cultural Fit</div>
+      <h2 style="color:var(--mist);margin-bottom:36px;">Japan didn't just adopt<br>walking apps. It <span class="highlight">invented them.</span></h2>
+
+      <div class="grid-2" style="gap:28px;">
+        <div style="display:flex;flex-direction:column;gap:16px;">
+          <div class="card" style="display:flex;gap:16px;align-items:flex-start;">
+            <div style="font-size:28px;">🌸</div>
+            <div>
+              <h3 style="color:var(--mist);font-size:16px;margin-bottom:6px;">散歩 Sanpo Culture</h3>
+              <p style="font-size:13px;">The Japanese tradition of mindful leisure walking is centuries old. Cadenz.io turns every sanpo into a musical memory.</p>
+            </div>
+          </div>
+          <div class="card" style="display:flex;gap:16px;align-items:flex-start;">
+            <div style="font-size:28px;">⛩️</div>
+            <div>
+              <h3 style="color:var(--mist);font-size:16px;margin-bottom:6px;">Route as Journey</h3>
+              <p style="font-size:13px;">Shikoku pilgrimage, Kumano Kodō, Tōkaidō — Japan has a 1,300-year tradition of treating routes as spiritual experiences. We give that music.</p>
+            </div>
+          </div>
+          <div class="card" style="display:flex;gap:16px;align-items:flex-start;">
+            <div style="font-size:28px;">🎌</div>
+            <div>
+              <h3 style="color:var(--mist);font-size:16px;margin-bottom:6px;">Collector Mindset</h3>
+              <p style="font-size:13px;">Gacha, stamps (eki-stamp), card games — Japan is a nation of completionists. Every new route = a new composition to collect.</p>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px;">
+          <div class="card" style="display:flex;gap:16px;align-items:flex-start;">
+            <div style="font-size:28px;">🎶</div>
+            <div>
+              <h3 style="color:var(--mist);font-size:16px;margin-bottom:6px;">Music in Daily Life</h3>
+              <p style="font-size:13px;">65% of Japanese own instruments. Karaoke is a weekly ritual. Japan has more record stores per capita than any nation. Music is identity here.</p>
+            </div>
+          </div>
+          <div class="card" style="display:flex;gap:16px;align-items:flex-start;">
+            <div style="font-size:28px;">🌲</div>
+            <div>
+              <h3 style="color:var(--mist);font-size:16px;margin-bottom:6px;">森林浴 Shinrin-yoku</h3>
+              <p style="font-size:13px;">"Forest bathing" — Japan's government-promoted practice of mindful outdoor time. Ambient and classical compositions are a perfect sonic companion.</p>
+            </div>
+          </div>
+          <div class="card card-teal" style="display:flex;gap:16px;align-items:flex-start;">
+            <div style="font-size:28px;">🎤</div>
+            <div>
+              <h3 style="color:var(--mist);font-size:16px;margin-bottom:6px;">Vocaloid &amp; DTM Culture</h3>
+              <p style="font-size:13px;">Japan invented AI music creation as a consumer product (Yamaha Vocaloid, Hatsune Miku). Millions compose at home. Cadenz.io is the next chapter: compose with your body.</p>
+            </div>
+          </div>
+          <div class="card card-teal" style="display:flex;gap:16px;align-items:flex-start;">
+            <div style="font-size:28px;">📱</div>
+            <div>
+              <h3 style="color:var(--mist);font-size:16px;margin-bottom:6px;">Mobile-First + LINE Nation</h3>
+              <p style="font-size:13px;"><strong style="color:var(--wave);">73%</strong> of Japanese runners listen to music while training. <strong style="color:var(--wave);">96M</strong> LINE MAU. <strong style="color:var(--wave);">70% iPhone</strong> market share. Japan is the world's most valuable iOS market.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════
+       SLIDE 09 — BUSINESS MODEL
+  ════════════════════════════════════════════════ -->
+  <div class="slide slide-mid" id="slide-09">
+    <div class="content slide-inner">
+      <div class="label">Business Model</div>
+      <h2 style="color:var(--mist);margin-bottom:8px;">Freemium + Partnerships<br><span class="highlight">+ B2B API</span></h2>
+      <p style="margin-bottom:32px;max-width:600px;">Three revenue streams that compound — starting with direct subscriptions, growing into brand partnerships and enterprise licensing.</p>
+
+      <div class="grid-3" style="margin-bottom:28px;">
+        <div class="price-col">
+          <div style="font-size:14px;font-weight:700;color:var(--slate);margin-bottom:16px;text-transform:uppercase;letter-spacing:.05em;">Free</div>
+          <div class="price-amount">¥0<span class="price-period">/ forever</span></div>
+          <div style="height:1px;background:rgba(255,255,255,0.06);margin:16px 0;"></div>
+          <div style="display:flex;flex-direction:column;gap:8px;font-size:13px;color:var(--slate);">
+            <div>✓ 30 min recording cap</div>
+            <div>✓ 10 compositions</div>
+            <div>✓ Classical + Blues</div>
+            <div>✓ Piano + Synth</div>
+            <div>✓ Full social features</div>
+          </div>
+        </div>
+        <div class="price-col featured">
+          <div style="font-size:14px;font-weight:700;color:var(--wave);margin-bottom:16px;text-transform:uppercase;letter-spacing:.05em;">Pro</div>
+          <div class="price-amount">¥980<span class="price-period">/ month</span></div>
+          <div style="font-size:12px;color:var(--slate);margin-top:4px;">¥700/mo annual · save 28%</div>
+          <div style="height:1px;background:rgba(20,184,166,0.15);margin:16px 0;"></div>
+          <div style="display:flex;flex-direction:column;gap:8px;font-size:13px;color:var(--slate);">
+            <div style="color:var(--wave);">✓ Unlimited everything</div>
+            <div>✓ All 5 genres</div>
+            <div>✓ All 4 instruments</div>
+            <div>✓ Persona &amp; style tags</div>
+            <div>✓ MP3 export (coming)</div>
+            <div>✓ Strava import (coming)</div>
+          </div>
+        </div>
+        <div class="price-col" style="background:rgba(249,115,22,0.06);border-color:rgba(249,115,22,0.2);">
+          <div style="font-size:14px;font-weight:700;color:var(--beat);margin-bottom:16px;text-transform:uppercase;letter-spacing:.05em;">Brand API</div>
+          <div class="price-amount" style="color:var(--beat);">¥50M+<span class="price-period">/ partner</span></div>
+          <div style="height:1px;background:rgba(249,115,22,0.1);margin:16px 0;"></div>
+          <div style="display:flex;flex-direction:column;gap:8px;font-size:13px;color:var(--slate);">
+            <div>✓ Branded route challenges</div>
+            <div>✓ Co-branded compositions</div>
+            <div>✓ Exclusive genre packs</div>
+            <div>✓ Campaign analytics</div>
+            <div>✓ White-label player</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="padding:20px;">
+        <div style="font-size:12px;font-weight:700;color:var(--wave);letter-spacing:.1em;text-transform:uppercase;margin-bottom:14px;">Revenue projections — Year 1 Japan</div>
+        <div class="grid-3" style="gap:16px;">
+          <div class="stat">
+            <div class="stat-num" style="font-size:28px;color:var(--wave);">50K</div>
+            <div class="stat-label">Free MAU (target)</div>
+          </div>
+          <div class="stat">
+            <div class="stat-num" style="font-size:28px;color:var(--wave);">5–6%</div>
+            <div class="stat-label">Conversion (JP above global avg)</div>
+          </div>
+          <div class="stat">
+            <div class="stat-num" style="font-size:28px;color:var(--beat);">¥29M+</div>
+            <div class="stat-label">ARR Year 1</div>
+          </div>
+        </div>
+        <div style="margin-top:12px;padding:10px 14px;background:rgba(249,115,22,0.08);border:1px solid rgba(249,115,22,0.2);border-radius:10px;font-size:12px;color:var(--slate);">
+          <strong style="color:var(--beat);">📡 Carrier billing lever:</strong> Docomo / SoftBank DCB increases subscription conversion <strong style="color:var(--mist);">2–3× vs. credit card</strong> — a Japan-specific revenue accelerator no Western app fully utilises.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════
+       SLIDE 10 — DISTRIBUTION
+  ════════════════════════════════════════════════ -->
+  <div class="slide slide-dark" id="slide-10">
+    <div class="bg-wave-circle" style="width:600px;height:600px;background:radial-gradient(circle,rgba(20,184,166,0.07) 0%,transparent 70%);top:-150px;left:-150px;position:absolute;"></div>
+    <div class="content slide-inner">
+      <div class="label">Go-to-Market</div>
+      <h2 style="color:var(--mist);margin-bottom:36px;">Digital-first launch,<br><span class="highlight">partnership-accelerated</span> growth.</h2>
+
+      <div class="grid-2" style="gap:28px;">
+        <div>
+          <div style="font-size:12px;font-weight:700;color:var(--wave);letter-spacing:.1em;text-transform:uppercase;margin-bottom:16px;">Phase 1 — Digital Launch</div>
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <div class="card" style="padding:14px;display:flex;gap:12px;align-items:flex-start;">
+              <span style="font-size:22px;min-width:32px;">📱</span>
+              <div>
+                <div style="font-size:13px;font-weight:700;color:var(--mist);margin-bottom:3px;">App Store Japan (PWA + Capacitor)</div>
+                <div style="font-size:12px;color:var(--slate);">PWA live now · Native wrapper Q2 2026</div>
+              </div>
+            </div>
+            <div class="card" style="padding:14px;display:flex;gap:12px;align-items:flex-start;">
+              <span style="font-size:22px;min-width:32px;">📸</span>
+              <div>
+                <div style="font-size:13px;font-weight:700;color:var(--mist);margin-bottom:3px;">Instagram / X / TikTok</div>
+                <div style="font-size:12px;color:var(--slate);">OG share cards auto-generate shareable route + waveform visuals</div>
+              </div>
+            </div>
+            <div class="card" style="padding:14px;display:flex;gap:12px;align-items:flex-start;">
+              <span style="font-size:22px;min-width:32px;">🏃</span>
+              <div>
+                <div style="font-size:13px;font-weight:700;color:var(--mist);margin-bottom:3px;">Running communities</div>
+                <div style="font-size:12px;color:var(--slate);">Strava clubs, Tokyo Marathon group, UTMF trail community</div>
+              </div>
+            </div>
+            <div class="card" style="padding:14px;display:flex;gap:12px;align-items:flex-start;">
+              <span style="font-size:22px;min-width:32px;">🎙️</span>
+              <div>
+                <div style="font-size:13px;font-weight:700;color:var(--mist);margin-bottom:3px;">Creator seeding</div>
+                <div style="font-size:12px;color:var(--slate);">Music YouTubers, running influencers, onsen/nature content creators</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div style="font-size:12px;font-weight:700;color:var(--beat);letter-spacing:.1em;text-transform:uppercase;margin-bottom:16px;">Phase 2 — Partnership Channels</div>
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <div class="card card-orange" style="padding:14px;display:flex;gap:12px;align-items:flex-start;">
+              <span style="font-size:22px;min-width:32px;">🏪</span>
+              <div>
+                <div style="font-size:13px;font-weight:700;color:var(--mist);margin-bottom:3px;">Sports retail bundles</div>
+                <div style="font-size:12px;color:var(--slate);">Asics / Mizuno shoe purchase → 3-month Pro trial QR code</div>
+              </div>
+            </div>
+            <div class="card card-orange" style="padding:14px;display:flex;gap:12px;align-items:flex-start;">
+              <span style="font-size:22px;min-width:32px;">📡</span>
+              <div>
+                <div style="font-size:13px;font-weight:700;color:var(--mist);margin-bottom:3px;">Telecom bundles</div>
+                <div style="font-size:12px;color:var(--slate);">NTT Docomo / Softbank app subscription packs</div>
+              </div>
+            </div>
+            <div class="card card-orange" style="padding:14px;display:flex;gap:12px;align-items:flex-start;">
+              <span style="font-size:22px;min-width:32px;">🏨</span>
+              <div>
+                <div style="font-size:13px;font-weight:700;color:var(--mist);margin-bottom:3px;">Ryokan &amp; wellness tourism</div>
+                <div style="font-size:12px;color:var(--slate);">Mont Bell / onsen resorts: "record your nature walk, take your music home"</div>
+              </div>
+            </div>
+            <div class="card card-orange" style="padding:14px;display:flex;gap:12px;align-items:flex-start;">
+              <span style="font-size:22px;min-width:32px;">🎮</span>
+              <div>
+                <div style="font-size:13px;font-weight:700;color:var(--mist);margin-bottom:3px;">Gaming crossovers</div>
+                <div style="font-size:12px;color:var(--slate);">Bandai Namco challenge events · Konami Sports gym integration</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════
+       SLIDE 11 — PARTNERSHIPS
+  ════════════════════════════════════════════════ -->
+  <div class="slide slide-mid" id="slide-11">
+    <div class="content slide-inner">
+      <div class="label">Strategic Partnerships</div>
+      <h2 style="color:var(--mist);margin-bottom:8px;">Japan's biggest brands<br>have every reason to <span class="highlight">say yes.</span></h2>
+      <p style="margin-bottom:32px;max-width:600px;">Each partner gets a branded music experience that no other fitness or music platform can offer. We turn their products into compositions.</p>
+
+      <div class="grid-2" style="gap:20px;">
+        <!-- Sports -->
+        <div>
+          <div style="font-size:11px;font-weight:700;color:var(--slate);letter-spacing:.12em;text-transform:uppercase;margin-bottom:12px;">🏃 Sports &amp; Outdoor</div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div class="partner-pill">
+              <span class="partner-icon">👟</span>
+              <div>
+                <div class="partner-name">ASICS</div>
+                <div class="partner-sub">HQ Kobe · Already owns Runkeeper (acq. $100M) · Cadenz as creative layer on Runkeeper data</div>
+              </div>
+            </div>
+            <div class="partner-pill">
+              <span class="partner-icon">🏊</span>
+              <div>
+                <div class="partner-name">Mizuno</div>
+                <div class="partner-sub">Osaka · Marathon relay compositions · Mizuno Wave genre pack</div>
+              </div>
+            </div>
+            <div class="partner-pill">
+              <span class="partner-icon">⛺</span>
+              <div>
+                <div class="partner-name">Mont Bell</div>
+                <div class="partner-sub">Trail &amp; hiking · "Record your mountain" campaign · Nature playlist packs</div>
+              </div>
+            </div>
+            <div class="partner-pill">
+              <span class="partner-icon">🎽</span>
+              <div>
+                <div class="partner-name">Descente</div>
+                <div class="partner-sub">Premium run apparel · Embedded Pro trial with gear purchases</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Gaming + Music -->
+        <div>
+          <div style="font-size:11px;font-weight:700;color:var(--slate);letter-spacing:.12em;text-transform:uppercase;margin-bottom:12px;">🎮 Entertainment &amp; Music</div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div class="partner-pill">
+              <span class="partner-icon">🎮</span>
+              <div>
+                <div class="partner-name">Bandai Namco</div>
+                <div class="partner-sub">IP route challenges (Pac-Man, Taiko) · Co-branded collectible badges</div>
+              </div>
+            </div>
+            <div class="partner-pill">
+              <span class="partner-icon">🎵</span>
+              <div>
+                <div class="partner-name">Yamaha Music</div>
+                <div class="partner-sub">Invented Vocaloid / AI music creation · Premium sample packs · "Walk to Compose" school curriculum</div>
+              </div>
+            </div>
+            <div class="partner-pill">
+              <span class="partner-icon">🎮</span>
+              <div>
+                <div class="partner-name">Konami</div>
+                <div class="partner-sub">DDR / beatmania rhythm game DNA · Konami Sports 400+ gyms · "beatmania mode" for Cadenz routes</div>
+              </div>
+            </div>
+            <div class="partner-pill">
+              <span class="partner-icon">💬</span>
+              <div>
+                <div class="partner-name">LINE / LY Corp</div>
+                <div class="partner-sub">96M MAU in Japan · LINE mini-app + LINE Music · Share your composition in a LINE message</div>
+              </div>
+            </div>
+            <div class="partner-pill">
+              <span class="partner-icon">📡</span>
+              <div>
+                <div class="partner-name">NTT Docomo</div>
+                <div class="partner-sub">Telecom bundle · Docomo d Point integration · National distribution</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════
+       SLIDE 12 — ROADMAP
+  ════════════════════════════════════════════════ -->
+  <div class="slide slide-dark" id="slide-12">
+    <div class="bg-wave-circle" style="width:500px;height:500px;background:radial-gradient(circle,rgba(20,184,166,0.08) 0%,transparent 70%);bottom:-100px;right:-100px;position:absolute;"></div>
+    <div class="content slide-inner">
+      <div class="label">Roadmap</div>
+      <h2 style="color:var(--mist);margin-bottom:8px;">From Beta to<br><span class="highlight">platform play.</span></h2>
+
+      <!-- Live status banner -->
+      <div style="display:inline-flex;align-items:center;gap:10px;background:rgba(20,184,166,0.1);border:1px solid rgba(20,184,166,0.35);border-radius:100px;padding:6px 16px;margin-bottom:20px;">
+        <span style="display:block;width:8px;height:8px;border-radius:50%;background:var(--wave);box-shadow:0 0 0 3px rgba(20,184,166,0.3);animation:pulse 2s ease-in-out infinite;"></span>
+        <span style="font-size:12px;font-weight:700;color:var(--wave);">PWA Beta is live now</span>
+        <span style="font-size:12px;color:var(--slate);">· Testing underway · Ready to scale</span>
+      </div>
+      <style>@keyframes pulse{0%,100%{box-shadow:0 0 0 3px rgba(20,184,166,0.3)}50%{box-shadow:0 0 0 6px rgba(20,184,166,0.1)}}</style>
+
+      <div class="grid-3">
+        <!-- Phase 1 -->
+        <div class="card card-teal">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <div style="font-size:12px;font-weight:700;color:var(--wave);letter-spacing:.1em;text-transform:uppercase;">Phase 1</div>
+            <span class="tag" style="font-size:10px;">Q2–Q3 2026</span>
+          </div>
+          <h3 style="color:var(--mist);font-size:15px;margin-bottom:4px;">Launch &amp; Core</h3>
+          <!-- Already live -->
+          <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(20,184,166,0.15);border-radius:100px;padding:3px 10px;margin-bottom:10px;">
+            <span style="width:6px;height:6px;border-radius:50%;background:var(--wave);display:block;animation:pulse 2s ease-in-out infinite;"></span>
+            <span style="font-size:10px;font-weight:700;color:var(--wave);">PWA Beta live · Testing active</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div class="feature-row" style="padding:8px 0;">
+              <div class="check" style="font-size:10px;background:rgba(20,184,166,0.25);">✓</div>
+              <span style="font-size:13px;color:var(--mist);font-weight:600;">PWA Beta — live &amp; testable now</span>
+            </div>
+            <div class="feature-row" style="padding:8px 0;">
+              <div class="check" style="font-size:10px;background:rgba(20,184,166,0.25);">✓</div>
+              <span style="font-size:13px;color:var(--mist);font-weight:600;">Japanese UI — localised &amp; shipped</span>
+            </div>
+            <div class="feature-row" style="padding:8px 0;">
+              <div class="check" style="font-size:10px;background:rgba(20,184,166,0.25);">✓</div>
+              <span style="font-size:13px;color:var(--mist);font-weight:600;">MP3 export — ready</span>
+            </div>
+            <div class="feature-row" style="padding:8px 0;">
+              <div class="check" style="font-size:10px;">→</div>
+              <span style="font-size:13px;color:var(--slate);">Native iOS/Android (Capacitor)</span>
+            </div>
+            <div class="feature-row" style="padding:8px 0;">
+              <div class="check" style="font-size:10px;">→</div>
+              <span style="font-size:13px;color:var(--slate);">J-Pop / Enka genre pack</span>
+            </div>
+            <div class="feature-row" style="padding:8px 0;">
+              <div class="check" style="font-size:10px;">→</div>
+              <span style="font-size:13px;color:var(--slate);">Osaka + Tokyo city challenges</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Phase 2 -->
+        <div class="card" style="background:rgba(249,115,22,0.06);border-color:rgba(249,115,22,0.2);">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+            <div style="font-size:12px;font-weight:700;color:var(--beat);letter-spacing:.1em;text-transform:uppercase;">Phase 2</div>
+            <span class="tag-orange tag" style="font-size:10px;">Q4 2026</span>
+          </div>
+          <h3 style="color:var(--mist);font-size:15px;margin-bottom:12px;">Social &amp; Gamification</h3>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div class="feature-row" style="padding:8px 0;">
+              <div class="check" style="background:rgba(249,115,22,0.15);font-size:10px;">✦</div>
+              <span style="font-size:13px;color:var(--slate);">🎮 <strong style="color:var(--mist);">Hidden Notes</strong> — Pokémon GO-style collectibles on real routes</span>
+            </div>
+            <div class="feature-row" style="padding:8px 0;">
+              <div class="check" style="background:rgba(249,115,22,0.15);font-size:10px;">✦</div>
+              <span style="font-size:13px;color:var(--slate);">🎼 <strong style="color:var(--mist);">Orchestra Mode</strong> — multi-user real-time compositions</span>
+            </div>
+            <div class="feature-row" style="padding:8px 0;">
+              <div class="check" style="background:rgba(249,115,22,0.15);font-size:10px;">✦</div>
+              <span style="font-size:13px;color:var(--slate);">🔗 Strava import</span>
+            </div>
+            <div class="feature-row" style="padding:8px 0;">
+              <div class="check" style="background:rgba(249,115,22,0.15);font-size:10px;">✦</div>
+              <span style="font-size:13px;color:var(--slate);">🏆 City Leaderboards</span>
+            </div>
+            <div class="feature-row" style="padding:8px 0;">
+              <div class="check" style="background:rgba(249,115,22,0.15);font-size:10px;">✦</div>
+              <span style="font-size:13px;color:var(--slate);">🎁 Season Pass (gacha-style limited drops)</span>
+            </div>
+            <div class="feature-row" style="padding:8px 0;">
+              <div class="check" style="background:rgba(249,115,22,0.15);font-size:10px;">✦</div>
+              <span style="font-size:13px;color:var(--slate);">🤝 ASICS + Mizuno integrations</span>
+            </div>
+            <div class="feature-row" style="padding:8px 0;">
+              <div class="check" style="background:rgba(249,115,22,0.15);font-size:10px;">✦</div>
+              <span style="font-size:13px;color:var(--slate);">📺 Video export (route + waveform)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Phase 3 -->
+        <div class="card" style="background:rgba(30,41,59,0.3);">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+            <div style="font-size:12px;font-weight:700;color:var(--slate);letter-spacing:.1em;text-transform:uppercase;">Phase 3</div>
+            <span style="font-size:10px;color:var(--slate);background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:100px;padding:4px 10px;">2026</span>
+          </div>
+          <h3 style="color:var(--mist);font-size:15px;margin-bottom:12px;">Platform &amp; API</h3>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div class="feature-row" style="padding:8px 0;">
+              <div class="check" style="background:rgba(148,163,184,0.1);font-size:10px;">○</div>
+              <span style="font-size:13px;color:var(--slate);">🌏 Korea &amp; Southeast Asia expansion</span>
+            </div>
+            <div class="feature-row" style="padding:8px 0;">
+              <div class="check" style="background:rgba(148,163,184,0.1);font-size:10px;">○</div>
+              <span style="font-size:13px;color:var(--slate);">🔌 Brand API — white-label for Bandai campaigns</span>
+            </div>
+            <div class="feature-row" style="padding:8px 0;">
+              <div class="check" style="background:rgba(148,163,184,0.1);font-size:10px;">○</div>
+              <span style="font-size:13px;color:var(--slate);">🎵 Streaming distribution (Spotify · Apple)</span>
+            </div>
+            <div class="feature-row" style="padding:8px 0;">
+              <div class="check" style="background:rgba(148,163,184,0.1);font-size:10px;">○</div>
+              <span style="font-size:13px;color:var(--slate);">🤖 AI arrangement engine (harmonise any route)</span>
+            </div>
+            <div class="feature-row" style="padding:8px 0;">
+              <div class="check" style="background:rgba(148,163,184,0.1);font-size:10px;">○</div>
+              <span style="font-size:13px;color:var(--slate);">⌚ Apple Watch + WearOS native</span>
+            </div>
+            <div class="feature-row" style="padding:8px 0;">
+              <div class="check" style="background:rgba(148,163,184,0.1);font-size:10px;">○</div>
+              <span style="font-size:13px;color:var(--slate);">🏥 Corporate wellness (B2B HR)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════
+       SLIDE 13 — HIDDEN NOTES (Feature Deep Dive)
+  ════════════════════════════════════════════════ -->
+  <div class="slide slide-dark" id="slide-13">
+    <div class="bg-wave-circle" style="width:700px;height:700px;background:radial-gradient(circle,rgba(249,115,22,0.09) 0%,transparent 65%);top:-200px;right:-200px;position:absolute;"></div>
+    <div class="content slide-inner">
+      <div class="label">Future Vision — Phase 2 Highlight</div>
+      <h2 style="color:var(--mist);margin-bottom:16px;">"Hidden Notes" —<br><span class="highlight-orange">Pokémon GO for music.</span></h2>
+      <p style="max-width:600px;margin-bottom:36px;">Rare musical fragments hidden at real-world locations across Japan. Walk there, collect them, incorporate them into your compositions. A global treasure hunt powered by sound.</p>
+
+      <div class="grid-2" style="gap:28px;align-items:stretch;">
+        <div style="display:flex;flex-direction:column;gap:16px;">
+          <div class="card card-orange" style="padding:20px;">
+            <h3 style="color:var(--mist);font-size:15px;margin-bottom:8px;">🗺️ How it works</h3>
+            <div class="timeline" style="margin-top:4px;">
+              <div class="timeline-item future">
+                <div style="font-size:13px;font-weight:700;color:var(--mist);margin-bottom:3px;">Rare notes seeded citywide</div>
+                <div style="font-size:12px;color:var(--slate);">Cadenz hides rare musical fragments at shrines, parks, landmarks. New drops weekly.</div>
+              </div>
+              <div class="timeline-item future">
+                <div style="font-size:13px;font-weight:700;color:var(--mist);margin-bottom:3px;">Walk to unlock</div>
+                <div style="font-size:12px;color:var(--slate);">GPS proximity unlocks the note. It plays through your headphones in real-time — you hear the melody as you arrive.</div>
+              </div>
+              <div class="timeline-item future">
+                <div style="font-size:13px;font-weight:700;color:var(--mist);margin-bottom:3px;">Compose with your finds</div>
+                <div style="font-size:12px;color:var(--slate);">Collected notes become building blocks. Use them in your next composition for a unique sound only you own.</div>
+              </div>
+              <div class="timeline-item future" style="margin-bottom:0;">
+                <div style="font-size:13px;font-weight:700;color:var(--mist);margin-bottom:3px;">Trade &amp; collaborate</div>
+                <div style="font-size:12px;color:var(--slate);">Gift notes to friends. Rare "Legendary" notes found only during festivals — cherry blossom, O-bon, New Year's.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:16px;">
+          <div class="card" style="padding:20px;">
+            <h3 style="color:var(--mist);font-size:15px;margin-bottom:12px;">🎯 Why it works in Japan</h3>
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <div style="display:flex;gap:10px;align-items:flex-start;">
+                <span style="color:var(--beat);font-size:16px;min-width:20px;">◆</span>
+                <p style="font-size:13px;margin:0;"><strong style="color:var(--mist);">Proven template:</strong> DQ Walk drives 30M+ users to walk specific routes. Notes = quests.</p>
+              </div>
+              <div style="display:flex;gap:10px;align-items:flex-start;">
+                <span style="color:var(--beat);font-size:16px;min-width:20px;">◆</span>
+                <p style="font-size:13px;margin:0;"><strong style="color:var(--mist);">Seasonal events:</strong> Japan's calendar is event-driven. Exclusive notes at Hanami = massive FOMO.</p>
+              </div>
+              <div style="display:flex;gap:10px;align-items:flex-start;">
+                <span style="color:var(--beat);font-size:16px;min-width:20px;">◆</span>
+                <p style="font-size:13px;margin:0;"><strong style="color:var(--mist);">Tourism tie-in:</strong> JR / tourism boards can sponsor note drops at destinations to drive foot traffic.</p>
+              </div>
+              <div style="display:flex;gap:10px;align-items:flex-start;">
+                <span style="color:var(--beat);font-size:16px;min-width:20px;">◆</span>
+                <p style="font-size:13px;margin:0;"><strong style="color:var(--mist);">Brand drops:</strong> ASICS drops exclusive "Marathon Note" at race finish lines. Bandai drops anime themes.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="card card-teal" style="padding:20px;">
+            <h3 style="color:var(--mist);font-size:15px;margin-bottom:12px;">🎼 Orchestra Mode</h3>
+            <p style="font-size:13px;margin-bottom:10px;">Multiple runners, same route, different instruments. Each runner's path adds a layer — piano, violin, drums, synth — composing together in real time.</p>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <span class="tag" style="font-size:11px;">🎹 Runner A = Piano</span>
+              <span class="tag" style="font-size:11px;">🎻 Runner B = Violin</span>
+              <span class="tag" style="font-size:11px;">🥁 Runner C = Drums</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════
+       SLIDE 14 — COMPETITIVE ADVANTAGE
+  ════════════════════════════════════════════════ -->
+  <div class="slide slide-mid" id="slide-14">
+    <div class="content slide-inner">
+      <div class="label">Why We Win</div>
+      <h2 style="color:var(--mist);margin-bottom:36px;">Defensible moat,<br><span class="highlight">not just a feature.</span></h2>
+
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead>
+            <tr style="border-bottom:2px solid rgba(20,184,166,0.3);">
+              <th style="text-align:left;padding:10px 16px;color:var(--slate);font-weight:600;font-size:11px;letter-spacing:.08em;text-transform:uppercase;">Capability</th>
+              <th style="padding:10px 16px;color:var(--mist);font-weight:700;text-align:center;background:rgba(20,184,166,0.06);border-radius:8px 8px 0 0;">
+                <div style="display:flex;align-items:center;gap:6px;justify-content:center;">
+                  <svg viewBox="0 0 24 8" fill="none" width="16"><path d="M1 6 C4 5 6 2 8 1 C10 0 11 3 13 3 C15 3 16 1 18 1" stroke="#14B8A6" stroke-width="1.5" stroke-linecap="round"/><circle cx="18" cy="1" r="1.5" fill="#14B8A6"/></svg>
+                  Cadenz.io
+                </div>
+              </th>
+              <th style="padding:10px 16px;color:var(--slate);text-align:center;">Strava</th>
+              <th style="padding:10px 16px;color:var(--slate);text-align:center;">DQ Walk</th>
+              <th style="padding:10px 16px;color:var(--slate);text-align:center;">Spotify</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
+              <td style="padding:12px 16px;color:var(--slate);">GPS → Music generation</td>
+              <td style="padding:12px 16px;text-align:center;background:rgba(20,184,166,0.04);">✅</td>
+              <td style="padding:12px 16px;text-align:center;">❌</td>
+              <td style="padding:12px 16px;text-align:center;">❌</td>
+              <td style="padding:12px 16px;text-align:center;">❌</td>
+            </tr>
+            <tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
+              <td style="padding:12px 16px;color:var(--slate);">Location-based gamification</td>
+              <td style="padding:12px 16px;text-align:center;background:rgba(20,184,166,0.04);">✅</td>
+              <td style="padding:12px 16px;text-align:center;">⚡ Segments</td>
+              <td style="padding:12px 16px;text-align:center;">✅</td>
+              <td style="padding:12px 16px;text-align:center;">❌</td>
+            </tr>
+            <tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
+              <td style="padding:12px 16px;color:var(--slate);">Social composition sharing</td>
+              <td style="padding:12px 16px;text-align:center;background:rgba(20,184,166,0.04);">✅</td>
+              <td style="padding:12px 16px;text-align:center;">❌</td>
+              <td style="padding:12px 16px;text-align:center;">❌</td>
+              <td style="padding:12px 16px;text-align:center;">⚡ Playlist</td>
+            </tr>
+            <tr style="border-bottom:1px solid rgba(255,255,255,0.04);">
+              <td style="padding:12px 16px;color:var(--slate);">Fitness tracking</td>
+              <td style="padding:12px 16px;text-align:center;background:rgba(20,184,166,0.04);">✅</td>
+              <td style="padding:12px 16px;text-align:center;">✅</td>
+              <td style="padding:12px 16px;text-align:center;">✅</td>
+              <td style="padding:12px 16px;text-align:center;">❌</td>
+            </tr>
+            <tr>
+              <td style="padding:12px 16px;color:var(--slate);">Unique per-user creative output</td>
+              <td style="padding:12px 16px;text-align:center;background:rgba(20,184,166,0.04);border-radius:0 0 8px 8px;">✅</td>
+              <td style="padding:12px 16px;text-align:center;">❌</td>
+              <td style="padding:12px 16px;text-align:center;">❌</td>
+              <td style="padding:12px 16px;text-align:center;">❌</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div style="margin-top:20px;padding:12px 18px;background:rgba(20,184,166,0.06);border:1px solid rgba(20,184,166,0.2);border-radius:10px;font-size:13px;color:var(--slate);">
+        <strong style="color:var(--wave);">🌸 Pikmin Bloom precedent:</strong> Nintendo × Niantic proved Japan loves "walk to create something." Pikmin Bloom hit #1 JP App Store in 2021 with the mechanic of planting digital flowers along your route. Cadenz.io is the same mechanic — but your creation is a piece of music you can actually share, play, and own.
+      </div>
+      <div style="margin-top:16px;display:flex;gap:16px;flex-wrap:wrap;">
+        <div class="card card-teal" style="flex:1;min-width:200px;padding:16px;">
+          <div style="font-size:13px;font-weight:700;color:var(--mist);margin-bottom:4px;">🔒 Composition Library Lock-in</div>
+          <div style="font-size:12px;color:var(--slate);">Every composition a user creates is a reason to stay. The longer they use Cadenz, the richer their personal library — impossible to migrate.</div>
+        </div>
+        <div class="card card-teal" style="flex:1;min-width:200px;padding:16px;">
+          <div style="font-size:13px;font-weight:700;color:var(--mist);margin-bottom:4px;">📊 GPS-to-Music Data Moat</div>
+          <div style="font-size:12px;color:var(--slate);">We accumulate route-to-music mappings that train our engine to generate more culturally-tuned compositions over time. Proprietary dataset, no one else has it.</div>
+        </div>
+        <div class="card card-teal" style="flex:1;min-width:200px;padding:16px;">
+          <div style="font-size:13px;font-weight:700;color:var(--mist);margin-bottom:4px;">🌏 Japan-Deep Localisation</div>
+          <div style="font-size:12px;color:var(--slate);">Japanese UI shipped. J-Pop / Enka genre packs on roadmap. Yamaha partnership for instrument quality. No Western fitness app has gone this deep.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════
+       SLIDE 15 — THE ASK
+  ════════════════════════════════════════════════ -->
+  <div class="slide slide-dark" id="slide-15">
+    <div class="bg-wave-circle" style="width:900px;height:900px;background:radial-gradient(circle,rgba(20,184,166,0.1) 0%,transparent 60%);top:-300px;right:-300px;position:absolute;"></div>
+    <div class="bg-wave-circle" style="width:500px;height:500px;background:radial-gradient(circle,rgba(249,115,22,0.07) 0%,transparent 70%);bottom:-150px;left:-100px;position:absolute;"></div>
+    <div class="content slide-inner">
+      <div class="label">The Ask</div>
+      <div class="grid-2" style="gap:48px;align-items:center;">
+        <div>
+          <h2 style="color:var(--mist);margin-bottom:20px;">Let's compose<br>Japan's next<br><span class="highlight">cultural moment.</span></h2>
+          <p style="font-size:16px;margin-bottom:32px;">We're raising a bridge round to fund the Japan launch, product roadmap, and partnership activation. Tickets from ¥25M. Strategic partners who understand Japan preferred.</p>
+
+          <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:32px;">
+            <!-- Round structure -->
+            <div style="display:flex;gap:12px;">
+              <div class="card" style="flex:1;padding:16px;text-align:center;background:rgba(30,41,59,0.5);">
+                <div style="font-size:10px;color:var(--slate);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;">Min. Ticket</div>
+                <div style="font-size:22px;font-weight:800;color:var(--mist);">¥25M</div>
+              </div>
+              <div class="card card-teal" style="flex:2;padding:16px;display:flex;justify-content:space-between;align-items:center;">
+                <div>
+                  <div style="font-size:10px;color:var(--wave);letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px;">Bridge Round</div>
+                  <div style="font-size:12px;color:var(--slate);">Japan launch · 12-month runway</div>
+                </div>
+                <div class="stat-num" style="font-size:32px;color:var(--wave);">¥160M</div>
+              </div>
+            </div>
+
+            <!-- Allocation bar -->
+            <div class="card" style="padding:16px;">
+              <div style="font-size:10px;color:var(--slate);letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px;">Capital Allocation</div>
+              <!-- Stacked bar -->
+              <div style="display:flex;height:10px;border-radius:10px;overflow:hidden;margin-bottom:14px;">
+                <div style="flex:35;background:var(--wave);"></div>
+                <div style="flex:30;background:var(--beat);"></div>
+                <div style="flex:20;background:#818CF8;"></div>
+                <div style="flex:15;background:#475569;"></div>
+              </div>
+              <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                <div style="flex:1;min-width:100px;">
+                  <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
+                    <span style="display:block;width:8px;height:8px;border-radius:2px;background:var(--wave);"></span>
+                    <span style="font-size:12px;color:var(--mist);font-weight:700;">35%</span>
+                  </div>
+                  <div style="font-size:11px;color:var(--slate);">Engineering &amp; Product</div>
+                  <div style="font-size:11px;color:var(--slate);opacity:.7;">¥56M</div>
+                </div>
+                <div style="flex:1;min-width:100px;">
+                  <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
+                    <span style="display:block;width:8px;height:8px;border-radius:2px;background:var(--beat);"></span>
+                    <span style="font-size:12px;color:var(--mist);font-weight:700;">30%</span>
+                  </div>
+                  <div style="font-size:11px;color:var(--slate);">GTM &amp; Marketing Japan</div>
+                  <div style="font-size:11px;color:var(--slate);opacity:.7;">¥48M</div>
+                </div>
+                <div style="flex:1;min-width:100px;">
+                  <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
+                    <span style="display:block;width:8px;height:8px;border-radius:2px;background:#818CF8;"></span>
+                    <span style="font-size:12px;color:var(--mist);font-weight:700;">20%</span>
+                  </div>
+                  <div style="font-size:11px;color:var(--slate);">Partnerships &amp; BD</div>
+                  <div style="font-size:11px;color:var(--slate);opacity:.7;">¥32M</div>
+                </div>
+                <div style="flex:1;min-width:100px;">
+                  <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">
+                    <span style="display:block;width:8px;height:8px;border-radius:2px;background:#475569;"></span>
+                    <span style="font-size:12px;color:var(--mist);font-weight:700;">15%</span>
+                  </div>
+                  <div style="font-size:11px;color:var(--slate);">Ops, Admin &amp; Legal</div>
+                  <div style="font-size:11px;color:var(--slate);opacity:.7;">¥24M</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:12px;flex-wrap:wrap;">
+            <span class="tag">🤝 Strategic partners welcome</span>
+            <span class="tag-orange tag">🇯🇵 Japan-based VCs ideal</span>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:16px;">
+          <div class="card" style="padding:24px;text-align:center;background:rgba(20,184,166,0.06);border-color:rgba(20,184,166,0.25);">
+            <!-- Logo -->
+            <div style="margin-bottom:16px;display:flex;justify-content:center;">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 44" fill="none" width="140">
+                <path d="M8 36 C8 36 14 22 19 19 C24 16 27 24 32 21 C37 18 39 11 42 7" stroke="#14B8A6" stroke-width="2.8" stroke-linecap="round" fill="none"/>
+                <circle cx="42" cy="7" r="3.5" fill="#14B8A6"/>
+                <line x1="45.5" y1="7" x2="45.5" y2="24" stroke="#14B8A6" stroke-width="2.2" stroke-linecap="round"/>
+                <text x="54" y="32" font-family="'Inter', sans-serif" font-size="24" font-weight="800" fill="#F8FAFC" letter-spacing="-0.5">cadenz</text>
+              </svg>
+            </div>
+            <p style="font-size:15px;color:var(--mist);font-style:italic;line-height:1.6;margin-bottom:20px;">"Your route is already music. We just let you hear it."</p>
+            <div class="waveform" style="justify-content:center;height:32px;margin-bottom:20px;">
+              <span style="height:8px;animation-delay:0s;"></span>
+              <span style="height:20px;animation-delay:.1s;"></span>
+              <span style="height:30px;animation-delay:.2s;"></span>
+              <span style="height:32px;animation-delay:.3s;"></span>
+              <span style="height:24px;animation-delay:.4s;"></span>
+              <span style="height:28px;animation-delay:.5s;"></span>
+              <span style="height:14px;animation-delay:.6s;"></span>
+              <span style="height:26px;animation-delay:.7s;"></span>
+              <span style="height:32px;animation-delay:.8s;"></span>
+              <span style="height:18px;animation-delay:.9s;"></span>
+            </div>
+            <div style="font-size:12px;color:var(--slate);">cadenz.io</div>
+          </div>
+
+          <div class="card" style="padding:18px;">
+            <div style="font-size:11px;font-weight:700;color:var(--slate);letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px;">We're looking for</div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <div class="feature-row" style="padding:6px 0;">
+                <div class="check">🇯🇵</div>
+                <span style="font-size:13px;color:var(--slate);">Japan market expertise &amp; network</span>
+              </div>
+              <div class="feature-row" style="padding:6px 0;">
+                <div class="check">🎮</div>
+                <span style="font-size:13px;color:var(--slate);">Entertainment / gaming industry connections</span>
+              </div>
+              <div class="feature-row" style="padding:6px 0;">
+                <div class="check">🤝</div>
+                <span style="font-size:13px;color:var(--slate);">Brand partnership introductions (Asics, Bandai…)</span>
+              </div>
+              <div class="feature-row" style="padding:6px 0;">
+                <div class="check">💴</div>
+                <span style="font-size:13px;color:var(--slate);">¥25M min ticket · bridge target ¥160M</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /deck -->
+
+<!-- ── CONTROLS ──────────────────────────────────────── -->
+<div class="nav" id="nav">
+  <button id="prevBtn" onclick="navigate(-1)" title="Previous (←)">‹</button>
+  <div class="slide-dots" id="dots"></div>
+  <span class="slide-counter" id="counter">1 / 15</span>
+  <button id="nextBtn" onclick="navigate(1)" title="Next (→)">›</button>
+</div>
+
+<div class="slide-num-badge" id="slideNumBadge">01 / 15</div>
+<div class="key-hint">← → to navigate · F for fullscreen</div>
+<button class="fullscreen-btn" onclick="toggleFullscreen()">⛶ Fullscreen</button>
+
+<script>
+  const TOTAL = 15
+  let current = 0
+
+  const slides = document.querySelectorAll('.slide')
+  const counter = document.getElementById('counter')
+  const badge   = document.getElementById('slideNumBadge')
+  const dotsEl  = document.getElementById('dots')
+
+  // Build dots
+  for (let i = 0; i < TOTAL; i++) {
+    const d = document.createElement('span')
+    d.className = 'dot' + (i === 0 ? ' active' : '')
+    d.onclick = () => goTo(i)
+    dotsEl.appendChild(d)
+  }
+
+  function goTo(n) {
+    slides[current].classList.remove('active')
+    slides[current].classList.add('exit')
+    setTimeout(() => slides[current < n ? current : current].classList.remove('exit'), 500)
+
+    const old = current
+    current = Math.max(0, Math.min(TOTAL - 1, n))
+
+    slides[old].classList.remove('active')
+    setTimeout(() => slides[old].classList.remove('exit'), 500)
+    slides[current].classList.add('active')
+
+    // Update dots
+    document.querySelectorAll('.dot').forEach((d, i) => {
+      d.classList.toggle('active', i === current)
+    })
+    counter.textContent = `${current + 1} / ${TOTAL}`
+    badge.textContent   = String(current + 1).padStart(2, '0') + ' / ' + TOTAL
+  }
+
+  function navigate(dir) {
+    if (dir === 1 && current < TOTAL - 1) goTo(current + 1)
+    if (dir === -1 && current > 0)        goTo(current - 1)
+  }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1) }
+    if (e.key === 'ArrowLeft')  { e.preventDefault(); navigate(-1) }
+    if (e.key === 'f' || e.key === 'F') toggleFullscreen()
+  })
+
+  // Touch/swipe
+  let touchX = null
+  document.addEventListener('touchstart', e => { touchX = e.touches[0].clientX }, { passive: true })
+  document.addEventListener('touchend', e => {
+    if (touchX === null) return
+    const dx = e.changedTouches[0].clientX - touchX
+    if (Math.abs(dx) > 60) navigate(dx < 0 ? 1 : -1)
+    touchX = null
+  }, { passive: true })
+
+  function toggleFullscreen() {
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(() => {})
+    else document.exitFullscreen()
+  }
+</script>
+</body>
+</html>

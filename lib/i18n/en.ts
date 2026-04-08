@@ -129,8 +129,10 @@ const en = {
   "settings.upgraded.sub": "Your subscription is active. All features are now unlocked.",
 
   // Dashboard
+  "dashboard.title":          "Feed",
+  "dashboard.discover":       "Discover composers",
   "dashboard.empty.title":    "No compositions yet",
-  "dashboard.empty.sub":      "Start your first walk to create music.",
+  "dashboard.empty.sub":      "Go for a walk to create your first composition, or follow other composers to see their activities here.",
   "dashboard.empty.cta":      "Start recording",
 
   // Scale names

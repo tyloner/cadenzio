@@ -4,6 +4,7 @@ import { ActivityCard } from "@/components/activity-card"
 import { EmptyFeed } from "@/components/empty-feed"
 import { SeedButton } from "@/components/dev/seed-button"
 import { Compass } from "lucide-react"
+import { getServerLang, t } from "@/lib/i18n/server"
 
 export const metadata = { title: "Feed" }
 
@@ -12,6 +13,7 @@ export default async function DashboardPage() {
   const myId = session!.user!.id!
 
   // Get IDs of users the current user follows + their units preference
+  const lang = await getServerLang()
   const [following, viewerProfile] = await Promise.all([
     db.follow.findMany({ where: { followerId: myId }, select: { followingId: true } }),
     db.profile.findUnique({ where: { userId: myId }, select: { units: true } }),
@@ -58,12 +60,12 @@ export default async function DashboardPage() {
   return (
     <div className="px-4 py-6">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-bold text-ink">Feed</h1>
+        <h1 className="text-xl font-bold text-ink">{t(lang, "dashboard.title")}</h1>
         {isDev && <SeedButton />}
       </div>
 
       {activities.length === 0 && discover.length === 0 ? (
-        <EmptyFeed />
+        <EmptyFeed lang={lang} />
       ) : (
         <div className="flex flex-col gap-4">
           {activities.map((a) => (
@@ -75,7 +77,7 @@ export default async function DashboardPage() {
               <div className="flex items-center gap-2 pt-2">
                 <Compass size={14} className="text-wave" />
                 <p className="text-xs font-semibold text-muted uppercase tracking-wide">
-                  Discover composers
+                  {t(lang, "dashboard.discover")}
                 </p>
               </div>
               {discover.map((a) => (

@@ -4,6 +4,7 @@ import dynamic from "next/dynamic"
 import Image from "next/image"
 import { useRouter } from "next/navigation"
 import { Heart, Music2, Timer, Ruler, Share2, Globe, Lock, Pencil, Trash2, Check, X } from "lucide-react"
+import { useT } from "@/components/layout/language-provider"
 import { formatDuration, formatDistance, timeAgo } from "@/lib/utils"
 import { useState, useRef } from "react"
 import { CompositionPlayer } from "./composition-player"
@@ -49,6 +50,7 @@ const GENRE_COLORS: Record<string, string> = {
 
 export function ActivityDetail({ activity, currentUserId, isLiked: initialLiked, units = "metric" }: Props) {
   const router = useRouter()
+  const t = useT()
   const isOwner = currentUserId === activity.user.id
 
   const [liked, setLiked] = useState(initialLiked)
@@ -204,9 +206,9 @@ export function ActivityDetail({ activity, currentUserId, isLiked: initialLiked,
         {/* Stats */}
         <div className="grid grid-cols-3 gap-3 mb-6">
           {[
-            { icon: Timer,  label: "Duration", value: activity.durationSec ? formatDuration(activity.durationSec) : "—" },
-            { icon: Ruler,  label: "Distance", value: activity.distanceM ? formatDistance(activity.distanceM, units) : "—" },
-            { icon: Music2, label: "Avg BPM",  value: activity.composition?.bpmAvg ? `${Math.round(activity.composition.bpmAvg)}` : "—" },
+            { icon: Timer,  label: t("activity.duration"), value: activity.durationSec ? formatDuration(activity.durationSec) : "—" },
+            { icon: Ruler,  label: t("activity.distance"), value: activity.distanceM ? formatDistance(activity.distanceM, units) : "—" },
+            { icon: Music2, label: t("activity.bpm"),      value: activity.composition?.bpmAvg ? `${Math.round(activity.composition.bpmAvg)}` : "—" },
           ].map(({ icon: Icon, label, value }) => (
             <div key={label} className="bg-mist rounded-xl p-3 text-center">
               <Icon size={16} className="text-wave mx-auto mb-1" />
@@ -250,24 +252,24 @@ export function ActivityDetail({ activity, currentUserId, isLiked: initialLiked,
                 className="flex items-center gap-1.5 text-xs text-muted hover:text-ink transition-colors disabled:opacity-40"
               >
                 {isPublic ? <Globe size={16} /> : <Lock size={16} />}
-                {isPublic ? "Public" : "Private"}
+                {isPublic ? t("activity.public") : t("activity.private")}
               </button>
 
               {confirmDelete ? (
                 <div className="flex items-center gap-2 ml-auto">
-                  <span className="text-xs text-red-500">Delete?</span>
+                  <span className="text-xs text-red-500">{t("activity.delete.confirm")}</span>
                   <button
                     onClick={deleteActivity}
                     disabled={deleting}
                     className="text-xs font-semibold text-red-500 hover:text-red-600 disabled:opacity-40"
                   >
-                    {deleting ? "Deleting…" : "Yes"}
+                    {deleting ? t("activity.delete.ing") : t("activity.delete.yes")}
                   </button>
                   <button
                     onClick={() => setConfirmDelete(false)}
                     className="text-xs text-muted hover:text-ink"
                   >
-                    Cancel
+                    {t("activity.delete.cancel")}
                   </button>
                 </div>
               ) : (
@@ -287,7 +289,7 @@ export function ActivityDetail({ activity, currentUserId, isLiked: initialLiked,
             className={`flex items-center gap-2 text-sm font-medium text-muted hover:text-wave transition-colors ${isOwner ? "" : "ml-auto"}`}
           >
             <Share2 size={18} />
-            Share
+            {t("activity.share")}
           </button>
         </div>
       </div>

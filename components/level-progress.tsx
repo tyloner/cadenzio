@@ -1,10 +1,12 @@
 import { getProgress, LEVELS } from "@/lib/levels"
+import { t, type Lang } from "@/lib/i18n/server"
 
 interface Props {
   totalActivities: number
+  lang?: Lang
 }
 
-export function LevelProgress({ totalActivities }: Props) {
+export function LevelProgress({ totalActivities, lang = "en" }: Props) {
   const { current, next, pct, clefs, clefsCap } = getProgress(totalActivities)
 
   return (
@@ -16,9 +18,9 @@ export function LevelProgress({ totalActivities }: Props) {
           {current.name}
         </span>
         {next ? (
-          <span className="text-xs text-muted">{clefs} / {clefsCap} clefs</span>
+          <span className="text-xs text-muted">{t(lang, "level.clefs", { n: clefs, cap: clefsCap })}</span>
         ) : (
-          <span className="text-xs text-yellow-600 font-semibold">Max level reached</span>
+          <span className="text-xs text-yellow-600 font-semibold">{t(lang, "level.max")}</span>
         )}
       </div>
 
@@ -33,8 +35,9 @@ export function LevelProgress({ totalActivities }: Props) {
       {/* Next level label */}
       {next && (
         <p className="text-xs text-muted">
-          {clefsCap - clefs} more composition{clefsCap - clefs !== 1 ? "s" : ""} to reach{" "}
-          <span className={`font-semibold ${next.textColor}`}>{next.emoji} {next.name}</span>
+          {clefsCap - clefs === 1
+            ? t(lang, "level.next",    { n: clefsCap - clefs, name: `${next.emoji} ${next.name}` })
+            : t(lang, "level.next.pl", { n: clefsCap - clefs, name: `${next.emoji} ${next.name}` })}
         </p>
       )}
 

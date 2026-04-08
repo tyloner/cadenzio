@@ -7,6 +7,7 @@ import { ActivityCard } from "@/components/activity-card"
 import { FollowButton } from "@/components/follow-button"
 import { MapPin, Music2, Award, Trophy } from "lucide-react"
 import { LevelProgress } from "@/components/level-progress"
+import { getServerLang, t } from "@/lib/i18n/server"
 
 const BADGE_STYLES: Record<string, { bg: string; text: string; label: string }> = {
   "Opus Prima": { bg: "bg-wave/10",       text: "text-wave",  label: "🎵 Opus Prima" },
@@ -27,6 +28,7 @@ function BadgeChip({ badge }: { badge: string }) {
 export default async function ProfilePage({ params }: { params: Promise<{ username: string }> }) {
   const { username } = await params
   const session = await auth()
+  const lang = await getServerLang()
 
   const profile = await db.profile.findUnique({
     where: { username },
@@ -112,19 +114,19 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
         <div className="flex gap-6 mt-4">
           <div className="text-center">
             <p className="text-lg font-bold text-ink">{profile.totalActivities}</p>
-            <p className="text-xs text-muted">Compositions</p>
+            <p className="text-xs text-muted">{t(lang, "profile.compositions")}</p>
           </div>
           <div className="text-center">
             <p className="text-lg font-bold text-ink">{totalDistFormatted}</p>
-            <p className="text-xs text-muted">walked</p>
+            <p className="text-xs text-muted">{t(lang, "profile.walked")}</p>
           </div>
           <div className="text-center">
             <p className="text-lg font-bold text-ink">{profile.user._count.followers}</p>
-            <p className="text-xs text-muted">Followers</p>
+            <p className="text-xs text-muted">{t(lang, "profile.followers")}</p>
           </div>
           <div className="text-center">
             <p className="text-lg font-bold text-ink">{profile.user._count.following}</p>
-            <p className="text-xs text-muted">Following</p>
+            <p className="text-xs text-muted">{t(lang, "profile.following")}</p>
           </div>
         </div>
 
@@ -150,7 +152,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
         )}
 
         {/* Level progress */}
-        <LevelProgress totalActivities={profile.totalActivities} />
+        <LevelProgress totalActivities={profile.totalActivities} lang={lang} />
 
         {/* Actions */}
         <div className="flex gap-2 mt-4">
@@ -159,7 +161,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
               href="/settings"
               className="flex-1 text-center border border-border rounded-xl py-2 text-sm font-medium text-ink hover:bg-mist transition-colors"
             >
-              Edit profile
+              {t(lang, "profile.edit")}
             </Link>
           ) : (
             <FollowButton userId={profile.userId} initialFollowing={!!isFollowing} />
@@ -169,9 +171,9 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
 
       {/* Activities */}
       <div className="px-4 pt-4 space-y-4">
-        <h2 className="text-sm font-semibold text-muted uppercase tracking-wide">Compositions</h2>
+        <h2 className="text-sm font-semibold text-muted uppercase tracking-wide">{t(lang, "profile.compositions.label")}</h2>
         {profile.user.activities.length === 0 ? (
-          <p className="text-sm text-muted text-center py-12">No public compositions yet.</p>
+          <p className="text-sm text-muted text-center py-12">{t(lang, "profile.no.activities")}</p>
         ) : (
           profile.user.activities.map((a) => (
             <ActivityCard key={a.id} activity={a} units={units} />
