@@ -82,7 +82,8 @@ model Profile {
   musicalInterests String[] @default([])
   styleTags        String[] @default([])
   personaName      String?
-  badges           String[] @default([])
+  badges              String[] @default([])
+  revealedChallenges  String[] @default([])  // "repertoire" | "gifted" | "virtuoso"
   totalActivities  Int      @default(0)
   totalDistance    Float    @default(0)
   units            String   @default("metric") // "metric" | "imperial"

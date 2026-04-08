@@ -9,6 +9,7 @@ import { formatDuration, formatDistance, timeAgo } from "@/lib/utils"
 import { useState, useRef } from "react"
 import { CompositionPlayer } from "./composition-player"
 import { CommentsSection } from "./comments-section"
+import { ChallengeRevealPopup } from "./challenge-reveal-popup"
 const ActivityMap = dynamic(() => import("./map/activity-map"), { ssr: false })
 
 interface FullActivity {
@@ -38,6 +39,7 @@ interface Props {
   currentUserId: string | null
   isLiked: boolean
   units?: "metric" | "imperial"
+  revealChallenge?: string | null
 }
 
 const GENRE_COLORS: Record<string, string> = {
@@ -48,7 +50,7 @@ const GENRE_COLORS: Record<string, string> = {
   electronic: "bg-pink-100 text-pink-700",
 }
 
-export function ActivityDetail({ activity, currentUserId, isLiked: initialLiked, units = "metric" }: Props) {
+export function ActivityDetail({ activity, currentUserId, isLiked: initialLiked, units = "metric", revealChallenge }: Props) {
   const router = useRouter()
   const t = useT()
   const isOwner = currentUserId === activity.user.id
@@ -145,6 +147,11 @@ export function ActivityDetail({ activity, currentUserId, isLiked: initialLiked,
 
   return (
     <div className="flex flex-col">
+      {/* Challenge reveal popup */}
+      {revealChallenge && (
+        <ChallengeRevealPopup challengeId={revealChallenge} activityId={activity.id} />
+      )}
+
       {/* Map */}
       <div className="h-64">
         <ActivityMap points={gpsTrack} progress={mapProgress} />

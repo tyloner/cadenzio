@@ -56,6 +56,14 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
 
   if (!profile) notFound()
 
+  // Query unique scales and instruments for level progress
+  const userCompositions = await db.composition.findMany({
+    where: { userId: profile.userId },
+    select: { scale: true, instrument: true },
+  })
+  const uniqueScales = new Set(userCompositions.map((c) => c.scale)).size
+  const uniqueInstruments = new Set(userCompositions.map((c) => c.instrument)).size
+
   const isOwn = session?.user?.id === profile.userId
 
   const [isFollowing, viewerProfile] = await Promise.all([
@@ -152,7 +160,13 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
         )}
 
         {/* Level progress */}
-        <LevelProgress totalActivities={profile.totalActivities} lang={lang} />
+        <LevelProgress
+          totalActivities={profile.totalActivities}
+          uniqueScales={uniqueScales}
+          uniqueInstruments={uniqueInstruments}
+          revealedChallenges={profile.revealedChallenges}
+          lang={lang}
+        />
 
         {/* Actions */}
         <div className="flex gap-2 mt-4">

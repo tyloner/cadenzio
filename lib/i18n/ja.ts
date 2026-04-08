@@ -87,6 +87,16 @@ const ja: Record<TranslationKey, string> = {
   "level.max":     "最高レベル達成",
   "level.next":    "あと{n}曲で{name}に到達",
   "level.next.pl": "あと{n}曲で{name}に到達",
+  "level.challenge.locked":  "シークレットチャレンジ",
+  "level.challenge.unlock":  "{n}曲達成で解放",
+  "level.cond.compositions": "{n}曲",
+  "level.cond.scales":       "{n}種類の音階",
+  "level.cond.instruments":  "{n}種類の楽器",
+  "level.cond.or":           "または",
+  "level.reveal.title":      "チャレンジ解放！",
+  "level.reveal.unlocked":   "の条件が公開されました",
+  "level.reveal.sub":        "このレベルを目指して作曲を続けましょう。必要な条件はこちらです：",
+  "level.reveal.cta":        "了解！",
 
   // Settings
   "settings.title":         "設定",

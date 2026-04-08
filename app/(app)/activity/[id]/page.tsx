@@ -44,8 +44,14 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   }
 }
 
-export default async function ActivityPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params
+export default async function ActivityPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>
+  searchParams: Promise<{ reveal?: string }>
+}) {
+  const [{ id }, { reveal }] = await Promise.all([params, searchParams])
   const session = await auth()
 
   const [activity, viewerProfile] = await Promise.all([
@@ -75,6 +81,7 @@ export default async function ActivityPage({ params }: { params: Promise<{ id: s
       currentUserId={session?.user?.id ?? null}
       isLiked={activity.likes.length > 0}
       units={units}
+      revealChallenge={reveal ?? null}
     />
   )
 }

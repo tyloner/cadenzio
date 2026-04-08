@@ -83,6 +83,16 @@ const en = {
   "level.max":        "Max level reached",
   "level.next":       "{n} more composition to {name}",
   "level.next.pl":    "{n} more compositions to {name}",
+  "level.challenge.locked":  "Secret challenge",
+  "level.challenge.unlock":  "Revealed at {n} compositions",
+  "level.cond.compositions": "{n} compositions",
+  "level.cond.scales":       "{n} scales",
+  "level.cond.instruments":  "{n} instruments",
+  "level.cond.or":           "OR",
+  "level.reveal.title":      "Challenge Unlocked!",
+  "level.reveal.unlocked":   "requirements revealed",
+  "level.reveal.sub":        "Keep composing to reach this level. Here's what you'll need:",
+  "level.reveal.cta":        "Got it!",
 
   // Settings
   "settings.title":        "Settings",

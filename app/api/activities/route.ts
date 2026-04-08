@@ -4,6 +4,7 @@ import { db } from "@/lib/db"
 import { processGpsToNotes, estimateAvgBpm } from "@/lib/music-engine/gps-processor"
 import { computeStyleAnalysis } from "@/lib/music-engine/style-tagger"
 import { FREE_LIMITS } from "@/lib/constants"
+import { checkNewReveal } from "@/lib/levels"
 import type { ScaleName, GenreName, InstrumentName } from "@/lib/music-engine/scales"
 import type { Prisma } from "@prisma/client"
 
@@ -90,33 +91,39 @@ export async function POST(req: NextRequest) {
     },
   })
 
-  // Update profile stats and compute earned badges
+  // Update profile stats
   const updatedProfile = await db.profile.update({
     where: { userId },
     data: {
       totalActivities: { increment: 1 },
       totalDistance: { increment: distanceM ?? 0 },
     },
-    select: { totalActivities: true, badges: true },
+    select: { totalActivities: true, badges: true, revealedChallenges: true },
   })
 
   const count = updatedProfile.totalActivities
+
+  // Award composition-count badges
   const BADGE_THRESHOLDS: [number, string][] = [
     [1,  "Opus Prima"],
-    [10, "Repertoire"],
-    [20, "Gifted"],
-    [30, "Virtuoso"],
+    [20, "Repertoire"],
+    [35, "Gifted"],
+    [50, "Virtuoso"],
   ]
   const newBadges = BADGE_THRESHOLDS
     .filter(([threshold]) => count >= threshold)
     .map(([, name]) => name)
     .filter((name) => !updatedProfile.badges.includes(name))
 
-  if (newBadges.length > 0) {
-    await db.profile.update({
-      where: { userId },
-      data: { badges: { push: newBadges } },
-    })
+  // Check if a secret challenge should be revealed
+  const newlyRevealedChallenge = checkNewReveal(count, updatedProfile.revealedChallenges)
+
+  // Persist badge + reveal updates
+  const profileUpdates: Record<string, unknown> = {}
+  if (newBadges.length > 0) profileUpdates.badges = { push: newBadges }
+  if (newlyRevealedChallenge) profileUpdates.revealedChallenges = { push: newlyRevealedChallenge }
+  if (Object.keys(profileUpdates).length > 0) {
+    await db.profile.update({ where: { userId }, data: profileUpdates })
   }
 
   // Style tagging (pro only)
@@ -132,5 +139,5 @@ export async function POST(req: NextRequest) {
     })
   }
 
-  return NextResponse.json({ activityId: activity.id }, { status: 201 })
+  return NextResponse.json({ activityId: activity.id, newlyRevealedChallenge }, { status: 201 })
 }

@@ -134,8 +134,11 @@ export function RecordScreen({ isPro, userId, units = "metric", usedSeconds = 0 
         }),
       })
       if (!res.ok) throw new Error("Save failed")
-      const { activityId } = await res.json()
-      router.push(`/activity/${activityId}`)
+      const { activityId, newlyRevealedChallenge } = await res.json()
+      const dest = newlyRevealedChallenge
+        ? `/activity/${activityId}?reveal=${newlyRevealedChallenge}`
+        : `/activity/${activityId}`
+      router.push(dest)
     } catch {
       setError("Could not save your activity. Please try again.")
       setState("recording")
