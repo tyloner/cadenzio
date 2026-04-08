@@ -6,6 +6,7 @@ import Link from "next/link"
 import { ActivityCard } from "@/components/activity-card"
 import { FollowButton } from "@/components/follow-button"
 import { MapPin, Music2, Award, Trophy } from "lucide-react"
+import { LevelProgress } from "@/components/level-progress"
 
 const BADGE_STYLES: Record<string, { bg: string; text: string; label: string }> = {
   "Opus Prima": { bg: "bg-wave/10",       text: "text-wave",  label: "🎵 Opus Prima" },
@@ -147,6 +148,9 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
             ))}
           </div>
         )}
+
+        {/* Level progress */}
+        <LevelProgress totalActivities={profile.totalActivities} />
 
         {/* Actions */}
         <div className="flex gap-2 mt-4">
