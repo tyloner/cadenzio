@@ -6,17 +6,18 @@ export async function GET() {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const notifications = await db.notification.findMany({
-    where: { userId: session.user.id },
-    orderBy: { createdAt: "desc" },
-    take: 40,
-    include: {
-      actor: { select: { name: true, image: true } },
-      activity: { select: { id: true, title: true } },
-    },
-  })
-
-  const unreadCount = notifications.filter((n) => !n.isRead).length
+  const [notifications, unreadCount] = await Promise.all([
+    db.notification.findMany({
+      where: { userId: session.user.id },
+      orderBy: { createdAt: "desc" },
+      take: 40,
+      include: {
+        actor: { select: { name: true, image: true } },
+        activity: { select: { id: true, title: true } },
+      },
+    }),
+    db.notification.count({ where: { userId: session.user.id, isRead: false } }),
+  ])
 
   return NextResponse.json({ notifications, unreadCount })
 }

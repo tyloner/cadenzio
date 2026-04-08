@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { ActivityCard } from "@/components/activity-card"
+import { FeedLoadMore } from "@/components/feed-load-more"
 import { EmptyFeed } from "@/components/empty-feed"
 import { SeedButton } from "@/components/dev/seed-button"
 import { Compass } from "lucide-react"
@@ -8,11 +9,12 @@ import { getServerLang, t } from "@/lib/i18n/server"
 
 export const metadata = { title: "Feed" }
 
+const PAGE_SIZE = 20
+
 export default async function DashboardPage() {
   const session = await auth()
   const myId = session!.user!.id!
 
-  // Get IDs of users the current user follows + their units preference
   const lang = await getServerLang()
   const [following, viewerProfile] = await Promise.all([
     db.follow.findMany({ where: { followerId: myId }, select: { followingId: true } }),
@@ -27,33 +29,35 @@ export default async function DashboardPage() {
     _count: { select: { likes: true, comments: true } },
   } as const
 
-  // Own activities (public + private) + followed users' public activities
-  const activities = await db.activity.findMany({
-    where: {
-      OR: [
-        { userId: myId },
-        { userId: { in: followingIds }, isPublic: true },
-      ],
-    },
-    orderBy: { startedAt: "desc" },
-    take: 30,
-    include: activityInclude,
-  })
-
-  // Discover: recent public activities from people not yet followed (shown when feed is short)
-  const showDiscover = activities.length < 5
   const excludeIds = [myId, ...followingIds]
-  const discover: typeof activities = showDiscover
-    ? await db.activity.findMany({
-        where: {
-          isPublic: true,
-          userId: { notIn: excludeIds },
-        },
-        orderBy: { startedAt: "desc" },
-        take: 10,
-        include: activityInclude,
-      })
-    : []
+
+  // First page of feed + discover candidates — both in parallel
+  const [rawActivities, discover] = await Promise.all([
+    db.activity.findMany({
+      where: {
+        OR: [
+          { userId: myId },
+          { userId: { in: followingIds }, isPublic: true },
+        ],
+      },
+      orderBy: { startedAt: "desc" },
+      take: PAGE_SIZE + 1, // extra to detect next page
+      include: activityInclude,
+    }),
+    db.activity.findMany({
+      where: { isPublic: true, userId: { notIn: excludeIds } },
+      orderBy: { startedAt: "desc" },
+      take: 10,
+      include: activityInclude,
+    }),
+  ])
+
+  const hasMore = rawActivities.length > PAGE_SIZE
+  const activities = rawActivities.slice(0, PAGE_SIZE)
+  const showDiscover = activities.length < 5
+
+  // Cursor = startedAt of last item in first page
+  const initialCursor = hasMore ? activities[activities.length - 1].startedAt.toISOString() : null
 
   const isDev = process.env.NODE_ENV === "development"
 
@@ -85,6 +89,9 @@ export default async function DashboardPage() {
               ))}
             </>
           )}
+
+          {/* Client-side pagination — renders additional pages on demand */}
+          <FeedLoadMore initialCursor={initialCursor} units={units} />
         </div>
       )}
     </div>

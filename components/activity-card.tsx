@@ -1,7 +1,5 @@
 "use client"
 
-"use client"
-
 import Link from "next/link"
 import Image from "next/image"
 import { Heart, MessageCircle, Music2, Timer, Ruler, Share2 } from "lucide-react"

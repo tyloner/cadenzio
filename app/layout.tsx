@@ -14,7 +14,14 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
   icons: {
     icon: "/assets/favicon.svg",
-    apple: "/api/icon/180",
+    apple: [
+      { url: "/api/icon/180", sizes: "180x180", type: "image/png" },
+    ],
+  },
+  appleWebApp: {
+    capable: true,
+    title: "Cadenzio",
+    statusBarStyle: "default",
   },
   openGraph: {
     siteName: "Cadenzio",
