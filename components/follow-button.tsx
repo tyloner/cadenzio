@@ -6,9 +6,10 @@ import { UserPlus, UserCheck } from "lucide-react"
 interface Props {
   userId: string
   initialFollowing: boolean
+  compact?: boolean
 }
 
-export function FollowButton({ userId, initialFollowing }: Props) {
+export function FollowButton({ userId, initialFollowing, compact }: Props) {
   const [following, setFollowing] = useState(initialFollowing)
   const [loading, setLoading] = useState(false)
 
@@ -20,6 +21,20 @@ export function FollowButton({ userId, initialFollowing }: Props) {
       setFollowing(data.following)
     }
     setLoading(false)
+  }
+
+  if (compact) {
+    return (
+      <button
+        onClick={toggle}
+        disabled={loading}
+        className={`w-9 h-9 flex-shrink-0 rounded-xl flex items-center justify-center transition-colors disabled:opacity-60 ${
+          following ? "border border-border text-muted hover:bg-mist" : "bg-wave text-white hover:bg-wave/80"
+        }`}
+      >
+        {following ? <UserCheck size={15} /> : <UserPlus size={15} />}
+      </button>
+    )
   }
 
   return (

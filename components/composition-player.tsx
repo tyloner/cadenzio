@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { Play, Pause, Music2 } from "lucide-react"
+import { Play, Pause, Music2, Download } from "lucide-react"
 
 const SPEEDS = [1, 1.5, 2, 3] as const
 type Speed = typeof SPEEDS[number]
@@ -45,6 +45,7 @@ export function CompositionPlayer({ midiEvents, bpmAvg, genre, instrument = "pia
   const [currentTime, setCurrentTime] = useState(0)
   const [loaded, setLoaded]           = useState(false)
   const [speed, setSpeed]             = useState<Speed>(1)
+  const [exporting, setExporting]     = useState(false)
 
   const T                = useRef<ToneModule | null>(null)
   const disposables      = useRef<{ dispose: () => void }[]>([])
@@ -257,6 +258,103 @@ export function CompositionPlayer({ midiEvents, bpmAvg, genre, instrument = "pia
     animRef.current = requestAnimationFrame(tick)
   }
 
+  async function exportWav() {
+    const Tone = T.current
+    if (!Tone || !loaded || exporting) return
+    setExporting(true)
+    try {
+      const bpm = bpmAvg ?? 90
+      const knownInstrument = (instrument in INSTRUMENT_CONFIG)
+        ? instrument as InstrumentName
+        : "synth" as InstrumentName
+      const instConfig = INSTRUMENT_CONFIG[knownInstrument]
+      const oscType    = GENRE_OSC[genre as GenreName] ?? "triangle"
+      const isAmbient  = genre === "ambient"
+
+      const buffer = await Tone.Offline(async ({ transport }) => {
+        transport.bpm.value = bpm
+
+        // Lead synth (piano not supported in offline — fall back to synth)
+        let leadSynth: { triggerAttackRelease: (f: number | string, d: string, t: number, v: number) => void; connect: (n: object) => void; dispose: () => void }
+        if (knownInstrument === "violin") {
+          leadSynth = new Tone.FMSynth({ harmonicity: 3.01, oscillator: { type: "sine" }, envelope: { attack: 0.12, decay: 0.2, sustain: 0.8, release: 2.0 }, modulation: { type: "sine" }, modulationIndex: 10, modulationEnvelope: { attack: 0.1, decay: 0.2, sustain: 1, release: 1.5 } }) as unknown as typeof leadSynth
+        } else if (knownInstrument === "drums") {
+          const s = new Tone.Synth({ oscillator: { type: "square" }, envelope: { attack: 0.005, decay: 0.08, sustain: 0.05, release: 0.15 } })
+          s.volume.value = -8
+          leadSynth = s as unknown as typeof leadSynth
+        } else {
+          leadSynth = new Tone.Synth({ oscillator: { type: oscType as OscillatorType }, envelope: { attack: isAmbient ? 0.3 : 0.05, decay: 0.2, sustain: 0.6, release: isAmbient ? 2.0 : 0.6 } }) as unknown as typeof leadSynth
+        }
+
+        const padSynth    = new Tone.PolySynth(Tone.Synth, { oscillator: { type: "sine" }, envelope: { attack: 0.4, decay: 0.5, sustain: 0.7, release: 2 } })
+        const rhythmSynth = new Tone.MembraneSynth({ pitchDecay: 0.05, octaves: instConfig.rhythmProminent ? 6 : 4 })
+        padSynth.volume.value    = instConfig.padVolume
+        rhythmSynth.volume.value = instConfig.rhythmProminent ? 2 : -6
+
+        const masterGain = new Tone.Gain(0.75).toDestination()
+        const reverbParams = instConfig.reverb ?? (isAmbient ? { decay: 5, wet: 0.6 } : null)
+        if (reverbParams) {
+          const rev = new Tone.Reverb(reverbParams)
+          rev.toDestination()
+          leadSynth.connect(rev)
+          padSynth.connect(rev)
+        } else {
+          leadSynth.connect(masterGain)
+          padSynth.connect(masterGain)
+        }
+        rhythmSynth.connect(masterGain)
+
+        const lead   = midiEvents.filter(e => e.track === "lead")
+        const pads   = midiEvents.filter(e => e.track === "pad")
+        const hits   = midiEvents.filter(e => e.track === "rhythm")
+
+        new Tone.Part<NoteEvent>((time, e) => {
+          leadSynth.triggerAttackRelease(midiToHz(e.note), e.duration, time, e.velocity)
+        }, lead.map(e => [e.time, e]) as unknown as NoteEvent[]).start(0)
+
+        new Tone.Part<NoteEvent>((time, e) => {
+          padSynth.triggerAttackRelease(midiToHz(e.note), "2n", time, e.velocity)
+        }, pads.map(e => [e.time, e]) as unknown as NoteEvent[]).start(0)
+
+        new Tone.Part<NoteEvent>((time) => {
+          rhythmSynth.triggerAttackRelease("C1", "16n", time)
+        }, hits.map(e => [e.time, e]) as unknown as NoteEvent[]).start(0)
+
+        transport.start()
+      }, totalDuration + 1)
+
+      // Encode to WAV
+      const numCh = buffer.numberOfChannels
+      const sr    = buffer.sampleRate
+      const len   = buffer.length
+      const dataBytes = len * numCh * 2
+      const ab    = new ArrayBuffer(44 + dataBytes)
+      const view  = new DataView(ab)
+      const ws    = (off: number, str: string) => { for (let i = 0; i < str.length; i++) view.setUint8(off + i, str.charCodeAt(i)) }
+      ws(0, "RIFF"); view.setUint32(4, 36 + dataBytes, true); ws(8, "WAVE")
+      ws(12, "fmt "); view.setUint32(16, 16, true); view.setUint16(20, 1, true)
+      view.setUint16(22, numCh, true); view.setUint32(24, sr, true)
+      view.setUint32(28, sr * numCh * 2, true); view.setUint16(32, numCh * 2, true)
+      view.setUint16(34, 16, true); ws(36, "data"); view.setUint32(40, dataBytes, true)
+      let off = 44
+      for (let i = 0; i < len; i++) {
+        for (let ch = 0; ch < numCh; ch++) {
+          const s = Math.max(-1, Math.min(1, buffer.getChannelData(ch)[i]))
+          view.setInt16(off, s < 0 ? s * 0x8000 : s * 0x7FFF, true)
+          off += 2
+        }
+      }
+      const url = URL.createObjectURL(new Blob([ab], { type: "audio/wav" }))
+      const a = document.createElement("a"); a.href = url
+      a.download = `cadenzio-composition.wav`; a.click()
+      setTimeout(() => URL.revokeObjectURL(url), 5000)
+    } catch (e) {
+      console.error("Export failed", e)
+    } finally {
+      setExporting(false)
+    }
+  }
+
   function handleSeek(e: React.MouseEvent<HTMLDivElement>) {
     const Tone = T.current
     if (!Tone) return
@@ -308,22 +406,33 @@ export function CompositionPlayer({ midiEvents, bpmAvg, genre, instrument = "pia
           </div>
         </div>
 
-        {/* Speed control */}
-        <div className="flex flex-col gap-1 flex-shrink-0">
-          {SPEEDS.map((s) => (
-            <button
-              key={s}
-              onClick={() => {
-                setSpeed(s)
-                if (T.current) T.current.getTransport().playbackRate = s
-              }}
-              className={`text-[10px] font-semibold px-1.5 py-0.5 rounded transition-colors leading-tight ${
-                speed === s ? "bg-wave text-white" : "text-muted hover:text-ink"
-              }`}
-            >
-              {s}×
-            </button>
-          ))}
+        {/* Speed + export */}
+        <div className="flex flex-col gap-1 flex-shrink-0 items-end">
+          <div className="flex gap-0.5">
+            {SPEEDS.map((s) => (
+              <button
+                key={s}
+                onClick={() => {
+                  setSpeed(s)
+                  if (T.current) T.current.getTransport().playbackRate = s
+                }}
+                className={`text-[10px] font-semibold px-1.5 py-0.5 rounded transition-colors leading-tight ${
+                  speed === s ? "bg-wave text-white" : "text-muted hover:text-ink"
+                }`}
+              >
+                {s}×
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={exportWav}
+            disabled={!loaded || exporting}
+            title="Export as WAV"
+            className="flex items-center gap-1 text-[10px] font-medium text-muted hover:text-wave transition-colors disabled:opacity-40 px-1"
+          >
+            <Download size={11} />
+            {exporting ? "Rendering…" : "WAV"}
+          </button>
         </div>
       </div>
 

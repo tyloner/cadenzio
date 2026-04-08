@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
+import { sendPush } from "@/lib/push"
 
 export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth()
@@ -15,12 +16,20 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
   })
 
   // Notify activity owner (skip self-like)
-  const activity = await db.activity.findUnique({ where: { id }, select: { userId: true } })
+  const [activity, actor] = await Promise.all([
+    db.activity.findUnique({ where: { id }, select: { userId: true, title: true } }),
+    db.user.findUnique({ where: { id: actorId }, select: { name: true } }),
+  ])
   if (activity && activity.userId !== actorId) {
     await db.notification.upsert({
       where: { actorId_type_activityId: { actorId, type: "LIKE", activityId: id } },
       create: { userId: activity.userId, actorId, type: "LIKE", activityId: id },
       update: { isRead: false, createdAt: new Date() },
+    })
+    sendPush(activity.userId, {
+      title: "New like",
+      body: `${actor?.name ?? "Someone"} liked "${activity.title}"`,
+      url: `/activity/${id}`,
     })
   }
 

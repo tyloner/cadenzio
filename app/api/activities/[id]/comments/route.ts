@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
+import { sendPush } from "@/lib/push"
 
 export async function GET(
   _req: NextRequest,
@@ -35,7 +36,10 @@ export async function POST(
   })
 
   // Notify activity owner (skip self-comment)
-  const activity = await db.activity.findUnique({ where: { id }, select: { userId: true } })
+  const [activity, actor] = await Promise.all([
+    db.activity.findUnique({ where: { id }, select: { userId: true, title: true } }),
+    db.user.findUnique({ where: { id: actorId }, select: { name: true } }),
+  ])
   if (activity && activity.userId !== actorId) {
     await db.notification.create({
       data: {
@@ -45,6 +49,11 @@ export async function POST(
         activityId: id,
         body: body.trim().slice(0, 100),
       },
+    })
+    sendPush(activity.userId, {
+      title: "New comment",
+      body: `${actor?.name ?? "Someone"}: "${body.trim().slice(0, 80)}"`,
+      url: `/activity/${id}`,
     })
   }
 

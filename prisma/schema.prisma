@@ -67,6 +67,7 @@ model User {
   likes                  Like[]
   comments               Comment[]
   gdprConsent            GdprConsent?
+  pushSubscriptions      PushSubscription[]
   notificationsReceived  Notification[] @relation("NotifRecipient")
   notificationsSent      Notification[] @relation("NotifActor")
 }
@@ -242,6 +243,17 @@ enum NotificationType {
 }
 
 // ─── GDPR ──────────────────────────────────────────────────────────────────
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
 
 model GdprConsent {
   id          String   @id @default(cuid())

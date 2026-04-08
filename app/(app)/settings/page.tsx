@@ -1,6 +1,7 @@
 import { auth, signOut } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { SettingsForm } from "@/components/settings-form"
+import { PushSubscribe } from "@/components/push-subscribe"
 import { CheckCircle2 } from "lucide-react"
 
 export const metadata = { title: "Settings" }
@@ -42,6 +43,13 @@ export default async function SettingsPage({
         userEmail={session?.user?.email ?? ""}
         userName={session?.user?.name ?? ""}
       />
+
+      {/* Notifications */}
+      <div className="bg-surface border border-border rounded-2xl p-5">
+        <h2 className="text-sm font-semibold text-ink mb-1">Notifications</h2>
+        <p className="text-xs text-muted mb-4">Get notified when someone likes or comments on your compositions.</p>
+        <PushSubscribe />
+      </div>
 
       {/* Sign out */}
       <div className="mt-8 pt-6 border-t border-border">
