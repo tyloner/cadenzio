@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth"
 import { NextResponse } from "next/server"
-import { detectLang, LANG_COOKIE } from "@/lib/i18n"
+import { detectLang, LANG_COOKIE } from "@/lib/i18n/detect"
 
 const PUBLIC_PATHS = ["/", "/login", "/legal/privacy", "/legal/terms", "/api/auth"]
 

@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Check, Lock, Download, Trash2 } from "lucide-react"
 import Link from "next/link"
 import { useT, useLang } from "@/components/layout/language-provider"
-import { LANG_COOKIE, type Lang } from "@/lib/i18n"
+import { LANG_COOKIE, type Lang } from "@/lib/i18n/detect"
 
 const COUNTRIES = ["Argentina", "Australia", "Brazil", "Canada", "France", "Germany", "Italy", "Japan", "Mexico", "Netherlands", "Portugal", "Spain", "United Kingdom", "United States", "Other"]
 const MUSICAL_INTERESTS = ["Classical", "Blues", "Jazz", "Electronic", "Ambient", "Folk", "Pop", "Rock", "Hip-hop", "R&B"]

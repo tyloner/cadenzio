@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Play, Lock } from "lucide-react"
 import { FREE_LIMITS } from "@/lib/constants"
-import { useT } from "@/components/layout/language-provider"
+import { useT, useLang } from "@/components/layout/language-provider"
 
 const NOTES = ["C2", "C3", "D3", "E3", "F3", "G3", "A3", "B3", "C4", "D4", "E4", "F4", "G4", "A4", "C5"]
 
@@ -45,13 +45,14 @@ interface Props {
 
 export function PreRecordSettings({ isPro, onStart }: Props) {
   const t = useT()
+  const lang = useLang()
   const [title, setTitle] = useState("")
   const [note, setNote] = useState("C4")
   const [scale, setScale] = useState("major")
   const [genre, setGenre] = useState("classical")
   const [instrument, setInstrument] = useState("piano")
 
-  const instLabels = t("nav.settings") === "設定" ? INSTRUMENT_LABELS_JA : INSTRUMENT_LABELS
+  const instLabels = lang === "ja" ? INSTRUMENT_LABELS_JA : INSTRUMENT_LABELS
 
   return (
     <div className="px-4 py-6 max-w-sm mx-auto">

@@ -4,7 +4,7 @@ import { AppShell } from "@/components/layout/app-shell"
 import { db } from "@/lib/db"
 import { OnboardingCarousel } from "@/components/layout/onboarding-carousel"
 import { LanguageProvider } from "@/components/layout/language-provider"
-import { detectLang, LANG_COOKIE, type Lang } from "@/lib/i18n"
+import { detectLang, LANG_COOKIE, type Lang } from "@/lib/i18n/detect"
 import { cookies, headers } from "next/headers"
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
