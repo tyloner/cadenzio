@@ -30,7 +30,7 @@ export default async function NotificationsPage() {
     orderBy: { createdAt: "desc" },
     take: 40,
     include: {
-      actor: { select: { name: true, image: true } },
+      actor: { select: { name: true, image: true, profile: { select: { username: true } } } },
       activity: { select: { id: true, title: true } },
     },
   })
@@ -53,7 +53,11 @@ export default async function NotificationsPage() {
           {notifications.map((n) => {
             const { icon: Icon, color, bg } = TYPE_ICON[n.type]
             const label = TYPE_LABEL[n.type]
-            const href = n.activity ? `/activity/${n.activity.id}` : `/profile/${n.actor.name}`
+            const href = n.activity
+              ? `/activity/${n.activity.id}`
+              : n.actor.profile?.username
+                ? `/profile/${n.actor.profile.username}`
+                : "/dashboard"
 
             return (
               <Link
