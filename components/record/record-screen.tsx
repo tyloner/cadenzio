@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import dynamic from "next/dynamic"
-import { Square, Loader2, Music2, Navigation, Pause, Play } from "lucide-react"
+import { Square, Loader2, Music2, Navigation, Pause, Play, Trash2 } from "lucide-react"
 import { haversineDistance, computeBearing, formatDuration, formatDistance } from "@/lib/utils"
 import { FREE_LIMITS } from "@/lib/constants"
 import type { GpsPoint } from "@/lib/music-engine/gps-processor"
@@ -31,11 +31,12 @@ export function RecordScreen({ isPro, userId, units = "metric", usedSeconds = 0 
     startingNote: string; scale: string; genre: string; title: string; instrument: string
   } | null>(null)
 
-  const [points, setPoints]     = useState<GpsPoint[]>([])
-  const [elapsed, setElapsed]   = useState(0)
-  const [distance, setDistance] = useState(0)
-  const [bearing, setBearing]   = useState(0)
-  const [error, setError]       = useState<string | null>(null)
+  const [points, setPoints]       = useState<GpsPoint[]>([])
+  const [elapsed, setElapsed]     = useState(0)
+  const [distance, setDistance]   = useState(0)
+  const [bearing, setBearing]     = useState(0)
+  const [error, setError]         = useState<string | null>(null)
+  const [confirmDiscard, setConfirmDiscard] = useState(false)
 
   const watchIdRef          = useRef<number | null>(null)
   const timerRef            = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -189,6 +190,28 @@ export function RecordScreen({ isPro, userId, units = "metric", usedSeconds = 0 
     await saveActivity()
   }, [releaseWakeLock]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ── Discard recording ──────────────────────────────────────────────────────
+  const discardRecording = useCallback(() => {
+    if (watchIdRef.current !== null) {
+      navigator.geolocation.clearWatch(watchIdRef.current)
+      watchIdRef.current = null
+    }
+    if (timerRef.current) {
+      clearInterval(timerRef.current)
+      timerRef.current = null
+    }
+    releaseWakeLock()
+    // Reset all state back to idle
+    setPoints([])
+    setElapsed(0)
+    setDistance(0)
+    setBearing(0)
+    setError(null)
+    setConfirmDiscard(false)
+    elapsedAtPauseRef.current = 0
+    setState("idle")
+  }, [releaseWakeLock])
+
   // Keep a stable ref for the auto-stop timer callback
   const stopRecordingRef = useRef(stopRecording)
   useEffect(() => { stopRecordingRef.current = stopRecording }, [stopRecording])
@@ -326,7 +349,7 @@ export function RecordScreen({ isPro, userId, units = "metric", usedSeconds = 0 
           </div>
         )}
 
-        {/* Controls: Pause/Resume + Stop */}
+        {/* Controls: Pause/Resume + Stop + Discard (when paused) */}
         <div className="flex gap-3">
           {/* Pause / Resume */}
           <button
@@ -348,7 +371,48 @@ export function RecordScreen({ isPro, userId, units = "metric", usedSeconds = 0 
             <Square size={20} fill="white" />
             {t("hud.stop")}
           </button>
+
+          {/* Discard — only visible when paused */}
+          {isPaused && (
+            <button
+              onClick={() => setConfirmDiscard(true)}
+              className="flex items-center justify-center border border-red-300 text-red-500 rounded-2xl py-4 px-5 hover:bg-red-50 transition-colors"
+              style={{ WebkitTapHighlightColor: "transparent", touchAction: "manipulation" }}
+              aria-label="Discard recording"
+            >
+              <Trash2 size={20} />
+            </button>
+          )}
         </div>
+
+        {/* Discard confirmation modal */}
+        {confirmDiscard && (
+          <div className="fixed inset-0 z-50 bg-ink/60 flex items-end sm:items-center justify-center p-4">
+            <div className="bg-surface rounded-2xl w-full max-w-sm p-6 shadow-2xl">
+              <div className="flex items-center justify-center w-12 h-12 rounded-full bg-red-100 mx-auto mb-4">
+                <Trash2 size={22} className="text-red-500" />
+              </div>
+              <h2 className="text-lg font-bold text-ink text-center mb-2">Cancel recording?</h2>
+              <p className="text-sm text-muted text-center mb-6">
+                Your walk and all recorded GPS data will be permanently discarded. This cannot be undone.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setConfirmDiscard(false)}
+                  className="flex-1 border border-border text-ink font-semibold rounded-xl py-3 hover:bg-mist transition-colors"
+                >
+                  Keep recording
+                </button>
+                <button
+                  onClick={discardRecording}
+                  className="flex-1 bg-red-500 text-white font-semibold rounded-xl py-3 hover:bg-red-600 transition-colors"
+                >
+                  Discard
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {!canStop && (
           <p className="text-xs text-muted text-center mt-2">{t("hud.wait")}</p>
