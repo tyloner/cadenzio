@@ -11,7 +11,7 @@ test.describe("Public pages", () => {
 
   test("login page renders Google sign-in button", async ({ page }) => {
     await page.goto("/login")
-    await expect(page.locator("text=Sign in with Google")).toBeVisible()
+    await expect(page.locator("text=Continue with Google")).toBeVisible()
   })
 
   test("protected dashboard redirects unauthenticated users to login", async ({ page }) => {
