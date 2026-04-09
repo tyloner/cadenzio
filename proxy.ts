@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth"
 import { NextResponse } from "next/server"
 import { detectLang, LANG_COOKIE } from "@/lib/i18n/detect"
 
-const PUBLIC_PATHS = ["/", "/login", "/legal/privacy", "/legal/terms", "/api/auth"]
+const PUBLIC_PATHS = ["/", "/login", "/legal/privacy", "/legal/terms", "/api/auth", "/api/webhooks", "/api/icon", "/assets", "/manifest.json", "/sw.js"]
 
 export default auth((req) => {
   const { pathname } = req.nextUrl
@@ -36,5 +36,5 @@ export default auth((req) => {
 })
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|assets|api/webhooks).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|assets|manifest.json|sw.js|api/webhooks|api/icon).*)"],
 }
