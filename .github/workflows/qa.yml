@@ -1,0 +1,176 @@
+name: QA
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    # Every 2 days at 08:00 UTC
+    - cron: "0 8 */2 * *"
+  workflow_dispatch:
+
+concurrency:
+  group: qa-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ─── 1. Unit tests ────────────────────────────────────────────────────────
+  unit:
+    name: Unit tests (Vitest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Generate Prisma client (no DB needed)
+        run: npx prisma generate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+
+      - name: Run unit tests
+        run: npm test
+
+  # ─── 2. Build check ───────────────────────────────────────────────────────
+  build:
+    name: Build check (Next.js)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build
+        run: npm run build
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DIRECT_URL: ${{ secrets.DIRECT_URL }}
+          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+          NEXTAUTH_URL: "https://cadenzio.vercel.app"
+          # Stripe + push keys — stubbed so build doesn't crash on missing env
+          STRIPE_SECRET_KEY: "sk_test_stub"
+          STRIPE_WEBHOOK_SECRET: "whsec_stub"
+          STRIPE_PRO_MONTHLY_PRICE_ID: "price_stub"
+          STRIPE_PRO_YEARLY_PRICE_ID: "price_stub"
+          VAPID_PUBLIC_KEY: "stub"
+          VAPID_PRIVATE_KEY: "stub"
+          VAPID_EMAIL: "qa@cadenzio.app"
+          AUTH_GOOGLE_ID: "stub"
+          AUTH_GOOGLE_SECRET: "stub"
+
+  # ─── 3. E2E tests ─────────────────────────────────────────────────────────
+  e2e:
+    name: E2E tests (Playwright)
+    runs-on: ubuntu-latest
+    needs: [unit, build]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install chromium --with-deps
+
+      - name: Run E2E tests
+        run: npm run test:e2e
+        env:
+          CI: "true"
+          PLAYWRIGHT_BASE_URL: ${{ secrets.PLAYWRIGHT_BASE_URL }}
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14
+
+  # ─── 4. Lighthouse audit ──────────────────────────────────────────────────
+  lighthouse:
+    name: Lighthouse audit
+    runs-on: ubuntu-latest
+    needs: [e2e]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci --ignore-scripts
+
+      - name: Run Lighthouse CI
+        uses: treosh/lighthouse-ci-action@v12
+        with:
+          urls: |
+            ${{ secrets.PLAYWRIGHT_BASE_URL }}/login
+          uploadArtifacts: true
+          temporaryPublicStorage: true
+          runs: 2
+          budgetPath: ".github/lighthouse-budget.json"
+
+  # ─── 5. Open GitHub Issue on failure ──────────────────────────────────────
+  notify-failure:
+    name: Open issue on failure
+    runs-on: ubuntu-latest
+    needs: [unit, build, e2e, lighthouse]
+    if: failure() && github.event_name == 'schedule'
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const date = new Date().toISOString().slice(0, 10)
+            const title = `[QA] Failure – ${date}`
+            const label = "qa-failure"
+
+            // Check for existing open issue with same label to avoid duplicates
+            const existing = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              labels: label,
+              state: "open",
+            })
+
+            if (existing.data.length > 0) {
+              // Add a comment to the existing issue instead
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existing.data[0].number,
+                body: `QA run failed again on ${date}. [View run](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`,
+              })
+            } else {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                labels: [label],
+                body: [
+                  "## QA pipeline failure",
+                  "",
+                  `**Date:** ${date}`,
+                  `**Run:** [${context.runId}](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})`,
+                  "",
+                  "One or more jobs failed: unit tests, build, E2E, or Lighthouse.",
+                  "Check the run link above for details.",
+                ].join("\n"),
+              })
+            }

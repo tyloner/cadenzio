@@ -70,8 +70,13 @@ export function CompositionPlayer({ midiEvents, bpmAvg, genre, instrument = "pia
           baseUrl: "https://tonejs.github.io/audio/salamander/",
         })
         pianoSamplerRef.current = sampler
-        await mod.loaded() // wait until all MP3s are buffered
+        // Race against a 15s timeout so a slow/blocked CDN never freezes the button
+        const timeout = new Promise<void>(resolve => setTimeout(resolve, 15_000))
+        await Promise.race([mod.loaded(), timeout])
       }
+      if (!cancelled) setLoaded(true)
+    }).catch(() => {
+      // Tone.js failed to load — still mark loaded so the UI isn't permanently frozen
       if (!cancelled) setLoaded(true)
     })
     return () => {
@@ -260,7 +265,11 @@ export function CompositionPlayer({ midiEvents, bpmAvg, genre, instrument = "pia
 
   async function exportWav() {
     const Tone = T.current
-    if (!Tone || !loaded || exporting) return
+    if (exporting) return
+    if (!Tone || !loaded) {
+      alert("Audio engine is still loading — please wait a moment and try again.")
+      return
+    }
     setExporting(true)
     try {
       const bpm = bpmAvg ?? 90
@@ -426,23 +435,27 @@ export function CompositionPlayer({ midiEvents, bpmAvg, genre, instrument = "pia
       </div>
 
       {/* Meta + export */}
-      <div className="flex items-center gap-1.5 text-xs text-muted">
-        <Music2 size={11} className="text-wave flex-shrink-0" />
-        <span className="capitalize flex-1 min-w-0 truncate">{INSTRUMENT_CONFIG[instrument as InstrumentName]?.emoji ?? "🎵"} {instrument} · {startingNote} · {scale.replace(/_/g, " ")} · {genre}{bpmAvg ? ` · ~${Math.round(bpmAvg)} BPM` : ""}</span>
-        {!loaded
-          ? <span className="text-wave/70 animate-pulse flex-shrink-0">{instrument === "piano" ? "Loading piano…" : "Loading…"}</span>
-          : (
-            <button
-              onClick={exportWav}
-              disabled={exporting}
-              title="Export as WAV"
-              className="flex-shrink-0 flex items-center gap-1 text-xs font-medium text-muted hover:text-wave border border-border hover:border-wave/40 rounded-lg px-2 py-1 transition-colors disabled:opacity-40"
-            >
-              <Download size={12} />
-              {exporting ? "Rendering…" : "Export WAV"}
-            </button>
-          )
-        }
+      <div className="flex items-center gap-2 mt-1">
+        <div className="flex items-center gap-1.5 text-xs text-muted flex-1 min-w-0">
+          <Music2 size={11} className="text-wave flex-shrink-0" />
+          <span className="capitalize truncate">
+            {INSTRUMENT_CONFIG[instrument as InstrumentName]?.emoji ?? "🎵"} {instrument} · {startingNote} · {scale.replace(/_/g, " ")} · {genre}{bpmAvg ? ` · ~${Math.round(bpmAvg)} BPM` : ""}
+          </span>
+          {!loaded && (
+            <span className="text-wave/70 animate-pulse flex-shrink-0">
+              {instrument === "piano" ? "Loading piano…" : "Loading…"}
+            </span>
+          )}
+        </div>
+        <button
+          onClick={exportWav}
+          disabled={exporting}
+          title={!loaded ? "Loading audio engine…" : "Export as WAV"}
+          className="flex-shrink-0 flex items-center gap-1.5 text-xs font-semibold text-wave bg-wave/10 hover:bg-wave/20 rounded-lg px-3 py-1.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <Download size={12} />
+          {exporting ? "Rendering…" : "Export WAV"}
+        </button>
       </div>
     </div>
   )
