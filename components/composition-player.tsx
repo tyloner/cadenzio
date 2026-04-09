@@ -61,6 +61,7 @@ export function CompositionPlayer({ midiEvents, bpmAvg, genre, instrument = "pia
   useEffect(() => {
     setLoaded(false)
     let cancelled = false
+    let timeoutId: ReturnType<typeof setTimeout> | null = null
     import("tone").then(async (mod) => {
       T.current = mod
       if (instrument === "piano") {
@@ -71,7 +72,7 @@ export function CompositionPlayer({ midiEvents, bpmAvg, genre, instrument = "pia
         })
         pianoSamplerRef.current = sampler
         // Race against a 15s timeout so a slow/blocked CDN never freezes the button
-        const timeout = new Promise<void>(resolve => setTimeout(resolve, 15_000))
+        const timeout = new Promise<void>(resolve => { timeoutId = setTimeout(resolve, 15_000) })
         await Promise.race([mod.loaded(), timeout])
       }
       if (!cancelled) setLoaded(true)
@@ -81,6 +82,7 @@ export function CompositionPlayer({ midiEvents, bpmAvg, genre, instrument = "pia
     })
     return () => {
       cancelled = true
+      if (timeoutId) clearTimeout(timeoutId)
       cleanup()
       try { pianoSamplerRef.current?.dispose() } catch { /* */ }
       pianoSamplerRef.current = null

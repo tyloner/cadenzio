@@ -54,7 +54,7 @@ export async function POST(
       title: "New comment",
       body: `${actor?.name ?? "Someone"}: "${body.trim().slice(0, 80)}"`,
       url: `/activity/${id}`,
-    })
+    }).catch(() => { /* best-effort — don't fail the request */ })
   }
 
   return NextResponse.json(comment, { status: 201 })

@@ -8,23 +8,20 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-// ─── NextAuth Adapter Models ────────────────────────────────────────────────
-
 model Account {
   id                String  @id @default(cuid())
   userId            String
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
+  refresh_token     String?
+  access_token      String?
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String? @db.Text
+  id_token          String?
   session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
 }
@@ -45,96 +42,79 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
-// ─── Core User ─────────────────────────────────────────────────────────────
-
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String?   @unique
-  emailVerified DateTime?
-  image         String?
-  createdAt     DateTime  @default(now())
-
-  accounts         Account[]
-  sessions         Session[]
-  profile          Profile?
-  activities       Activity[]
-  compositions     Composition[]
-  subscription     Subscription?
-  stravaConnection StravaConnection?
-  following        Follow[]          @relation("follower")
-  followers        Follow[]          @relation("following")
-  likes                  Like[]
-  comments               Comment[]
-  gdprConsent            GdprConsent?
-  pushSubscriptions      PushSubscription[]
-  notificationsReceived  Notification[] @relation("NotifRecipient")
-  notificationsSent      Notification[] @relation("NotifActor")
-  ownedEnsembles         Ensemble[]          @relation("EnsembleOwner")
-  ensembleMemberships    EnsembleMember[]
-  ensembleTracks         EnsembleTrack[]
-  hostedSessions         EnsembleSession[]   @relation("EnsembleSessionHost")
-  lobbyLocations         EnsembleLobbyLocation[]
+  id                    String                  @id @default(cuid())
+  name                  String?
+  email                 String?                 @unique
+  emailVerified         DateTime?
+  image                 String?
+  createdAt             DateTime                @default(now())
+  accounts              Account[]
+  activities            Activity[]
+  comments              Comment[]
+  compositions          Composition[]
+  ownedEnsembles        Ensemble[]              @relation("EnsembleOwner")
+  lobbyLocations        EnsembleLobbyLocation[]
+  ensembleMemberships   EnsembleMember[]
+  hostedSessions        EnsembleSession[]       @relation("EnsembleSessionHost")
+  ensembleTracks        EnsembleTrack[]
+  following             Follow[]                @relation("follower")
+  followers             Follow[]                @relation("following")
+  gdprConsent           GdprConsent?
+  likes                 Like[]
+  notificationsSent     Notification[]          @relation("NotifActor")
+  notificationsReceived Notification[]          @relation("NotifRecipient")
+  profile               Profile?
+  pushSubscriptions     PushSubscription[]
+  sessions              Session[]
+  stravaConnection      StravaConnection?
+  subscription          Subscription?
 }
-
-// ─── Profile ───────────────────────────────────────────────────────────────
 
 model Profile {
-  id               String   @id @default(cuid())
-  userId           String   @unique
-  username         String   @unique
-  bio              String?
-  country          String?
-  musicalInterests String[] @default([])
-  styleTags        String[] @default([])
-  personaName      String?
-  badges              String[] @default([])
-  revealedChallenges  String[] @default([])  // "repertoire" | "gifted" | "virtuoso"
-  totalActivities  Int      @default(0)
-  totalDistance    Float    @default(0)
-  units            String   @default("metric") // "metric" | "imperial"
-  language         String   @default("en")    // "en" | "ja"
-  isPublic         Boolean  @default(true)
-  onboardingDone   Boolean  @default(false)
-  ensembleTrialUsed Boolean @default(false)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  username           String   @unique
+  bio                String?
+  country            String?
+  musicalInterests   String[] @default([])
+  styleTags          String[] @default([])
+  personaName        String?
+  badges             String[] @default([])
+  revealedChallenges String[] @default([])
+  totalActivities    Int      @default(0)
+  totalDistance      Float    @default(0)
+  units              String   @default("metric")
+  language           String   @default("en")
+  isPublic           Boolean  @default(true)
+  onboardingDone     Boolean  @default(false)
+  ensembleTrialUsed  Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
-
-// ─── Activity ──────────────────────────────────────────────────────────────
 
 model Activity {
-  id          String         @id @default(cuid())
-  userId      String
-  title       String         @default("Untitled Walk")
-  startedAt   DateTime
-  endedAt     DateTime?
-  durationSec Int?
-  distanceM   Float?
-  gpsTrack    Json           // [{ lat, lng, bearing, speed, timestamp }]
-  isPublic    Boolean        @default(true)
-  source      ActivitySource @default(CADENZ)
-  stravaId    String?        @unique
-  createdAt   DateTime       @default(now())
-
+  id                String           @id @default(cuid())
+  userId            String
+  title             String           @default("Untitled Walk")
+  startedAt         DateTime
+  endedAt           DateTime?
+  durationSec       Int?
+  distanceM         Float?
+  gpsTrack          Json
+  isPublic          Boolean          @default(true)
+  source            ActivitySource   @default(CADENZ)
+  stravaId          String?          @unique
+  createdAt         DateTime         @default(now())
   ensembleSessionId String?          @unique
+  ensembleSession   EnsembleSession? @relation(fields: [ensembleSessionId], references: [id])
   user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  ensembleSession   EnsembleSession? @relation(fields: [ensembleSessionId], references: [id], onDelete: SetNull)
+  comments          Comment[]
   composition       Composition?
   likes             Like[]
-  comments          Comment[]
   notifications     Notification[]
 }
-
-enum ActivitySource {
-  CADENZ
-  STRAVA
-  ENSEMBLE
-}
-
-// ─── Composition ───────────────────────────────────────────────────────────
 
 model Composition {
   id           String   @id @default(cuid())
@@ -145,38 +125,27 @@ model Composition {
   genre        String   @default("classical")
   instrument   String   @default("piano")
   bpmAvg       Float?
-  midiEvents   Json     // [{ note, duration, time, velocity }]
-  audioUrl     String?  // Supabase Storage URL
+  midiEvents   Json
+  audioUrl     String?
   durationSec  Int?
   createdAt    DateTime @default(now())
-
-  activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
-  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activity     Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
-
-// ─── Subscription ──────────────────────────────────────────────────────────
 
 model Subscription {
-  id               String           @id @default(cuid())
-  userId           String           @unique
-  stripeCustomerId String           @unique
-  stripeSubId      String?          @unique
-  tier             SubscriptionTier @default(FREE)
-  status           String           @default("inactive")
-  currentPeriodEnd DateTime?
-  cancelAtPeriodEnd Boolean         @default(false)
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                String           @id @default(cuid())
+  userId            String           @unique
+  stripeCustomerId  String           @unique
+  stripeSubId       String?          @unique
+  tier              SubscriptionTier @default(FREE)
+  status            String           @default("inactive")
+  currentPeriodEnd  DateTime?
+  cancelAtPeriodEnd Boolean          @default(false)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
-
-enum SubscriptionTier {
-  FREE
-  PRO
-}
-
-// ─── Strava ────────────────────────────────────────────────────────────────
 
 model StravaConnection {
   id           String   @id @default(cuid())
@@ -186,19 +155,15 @@ model StravaConnection {
   refreshToken String
   expiresAt    DateTime
   createdAt    DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
-
-// ─── Social ────────────────────────────────────────────────────────────────
 
 model Follow {
   followerId  String
   followingId String
   createdAt   DateTime @default(now())
-
-  follower  User @relation("follower", fields: [followerId], references: [id], onDelete: Cascade)
-  following User @relation("following", fields: [followingId], references: [id], onDelete: Cascade)
+  follower    User     @relation("follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User     @relation("following", fields: [followingId], references: [id], onDelete: Cascade)
 
   @@id([followerId, followingId])
 }
@@ -208,9 +173,8 @@ model Like {
   userId     String
   activityId String
   createdAt  DateTime @default(now())
-
-  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  activity   Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, activityId])
 }
@@ -221,37 +185,25 @@ model Comment {
   activityId String
   body       String
   createdAt  DateTime @default(now())
-
-  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  activity Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  activity   Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
-
-// ─── Notifications ─────────────────────────────────────────────────────────
 
 model Notification {
   id         String           @id @default(cuid())
-  userId     String           // recipient
-  actorId    String           // who triggered it
+  userId     String
+  actorId    String
   type       NotificationType
   activityId String?
-  body       String?          // comment snippet
+  body       String?
   isRead     Boolean          @default(false)
   createdAt  DateTime         @default(now())
-
-  user     User      @relation("NotifRecipient", fields: [userId], references: [id], onDelete: Cascade)
-  actor    User      @relation("NotifActor",     fields: [actorId], references: [id], onDelete: Cascade)
-  activity Activity? @relation(fields: [activityId], references: [id], onDelete: SetNull)
+  activity   Activity?        @relation(fields: [activityId], references: [id])
+  actor      User             @relation("NotifActor", fields: [actorId], references: [id], onDelete: Cascade)
+  user       User             @relation("NotifRecipient", fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([actorId, type, activityId])
 }
-
-enum NotificationType {
-  LIKE
-  COMMENT
-  FOLLOW
-}
-
-// ─── GDPR ──────────────────────────────────────────────────────────────────
 
 model PushSubscription {
   id        String   @id @default(cuid())
@@ -260,8 +212,7 @@ model PushSubscription {
   p256dh    String
   auth      String
   createdAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model GdprConsent {
@@ -270,21 +221,17 @@ model GdprConsent {
   analytics   Boolean  @default(false)
   marketing   Boolean  @default(false)
   consentedAt DateTime @default(now())
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-// ─── Ensemble ──────────────────────────────────────────────────────────────
-
 model Ensemble {
-  id        String   @id @default(cuid())
+  id        String            @id @default(cuid())
   name      String
   ownerId   String
-  createdAt DateTime @default(now())
-
-  owner    User              @relation("EnsembleOwner", fields: [ownerId], references: [id], onDelete: Cascade)
-  members  EnsembleMember[]
-  sessions EnsembleSession[]
+  createdAt DateTime          @default(now())
+  owner     User              @relation("EnsembleOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members   EnsembleMember[]
+  sessions  EnsembleSession[]
 }
 
 model EnsembleMember {
@@ -292,44 +239,30 @@ model EnsembleMember {
   userId     String
   role       EnsembleRole @default(MEMBER)
   joinedAt   DateTime     @default(now())
-
-  ensemble Ensemble @relation(fields: [ensembleId], references: [id], onDelete: Cascade)
-  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ensemble   Ensemble     @relation(fields: [ensembleId], references: [id], onDelete: Cascade)
+  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([ensembleId, userId])
 }
 
-enum EnsembleRole {
-  OWNER
-  MEMBER
-}
-
 model EnsembleSession {
-  id            String                @id @default(cuid())
-  ensembleId    String
-  hostId        String
-  status        EnsembleSessionStatus @default(LOBBY)
-  scales        String[]              // up to 2
-  startedAt     DateTime?
-  endedAt       DateTime?
-  createdAt     DateTime              @default(now())
-
-  ensemble       Ensemble               @relation(fields: [ensembleId], references: [id], onDelete: Cascade)
-  host           User                   @relation("EnsembleSessionHost", fields: [hostId], references: [id], onDelete: Cascade)
-  tracks         EnsembleTrack[]
-  lobbyLocations EnsembleLobbyLocation[]
+  id             String                  @id @default(cuid())
+  ensembleId     String
+  hostId         String
+  status         EnsembleSessionStatus   @default(LOBBY)
+  scales         String[]
+  startedAt      DateTime?
+  endedAt        DateTime?
+  createdAt      DateTime                @default(now())
   activity       Activity?
-}
-
-enum EnsembleSessionStatus {
-  LOBBY
-  ACTIVE
-  COMPLETED
-  CANCELLED
+  lobbyLocations EnsembleLobbyLocation[]
+  ensemble       Ensemble                @relation(fields: [ensembleId], references: [id], onDelete: Cascade)
+  host           User                    @relation("EnsembleSessionHost", fields: [hostId], references: [id], onDelete: Cascade)
+  tracks         EnsembleTrack[]
 }
 
 model EnsembleTrack {
-  id           String   @id @default(cuid())
+  id           String          @id @default(cuid())
   sessionId    String
   userId       String
   instrument   String
@@ -338,10 +271,9 @@ model EnsembleTrack {
   bpmAvg       Float?
   midiEvents   Json
   gpsPoints    Json
-  submittedAt  DateTime @default(now())
-
-  session EnsembleSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  submittedAt  DateTime        @default(now())
+  session      EnsembleSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([sessionId, userId])
 }
@@ -351,10 +283,39 @@ model EnsembleLobbyLocation {
   userId    String
   lat       Float
   lng       Float
-  updatedAt DateTime @updatedAt
-
-  session EnsembleSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
-  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  updatedAt DateTime        @updatedAt
+  session   EnsembleSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([sessionId, userId])
+}
+
+enum ActivitySource {
+  CADENZ
+  STRAVA
+  ENSEMBLE
+}
+
+enum SubscriptionTier {
+  FREE
+  PRO
+}
+
+enum NotificationType {
+  LIKE
+  COMMENT
+  FOLLOW
+}
+
+enum EnsembleRole {
+  OWNER
+  MEMBER
+}
+
+enum EnsembleSessionStatus {
+  LOBBY
+  ACTIVE
+  COMPLETING
+  COMPLETED
+  CANCELLED
 }

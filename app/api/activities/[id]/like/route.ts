@@ -30,7 +30,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
       title: "New like",
       body: `${actor?.name ?? "Someone"} liked "${activity.title}"`,
       url: `/activity/${id}`,
-    })
+    }).catch(() => { /* best-effort — don't fail the request */ })
   }
 
   return NextResponse.json({ ok: true })

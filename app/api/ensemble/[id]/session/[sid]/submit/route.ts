@@ -62,7 +62,7 @@ export async function POST(
     create: { sessionId, userId, instrument, scale: validScale, startingNote: startingNote ?? "C4", bpmAvg, midiEvents: midiJson, gpsPoints: gpsJson },
   })
 
-  // Check if all present members have submitted — auto-complete session
+  // Check if all members submitted — use atomic status update to prevent race conditions
   const ensemble = await db.ensemble.findUnique({
     where: { id: ensembleId },
     include: { members: true },
@@ -72,7 +72,15 @@ export async function POST(
   const allSubmitted = memberIds.every((mid) => allTracks.some((t) => t.userId === mid))
 
   if (allSubmitted) {
-    await finalizeSession(sessionId, ensSession.ensembleId, allTracks, ensSession.scales, userId)
+    // Atomic: only the first request to set COMPLETING wins — prevents duplicate finalization
+    const claimed = await db.ensembleSession.updateMany({
+      where: { id: sessionId, status: "ACTIVE" },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      data: { status: "COMPLETING" as any },
+    })
+    if (claimed.count > 0) {
+      await finalizeSession(sessionId, ensSession.ensembleId, allTracks, ensSession.scales, userId)
+    }
   }
 
   return NextResponse.json({ ok: true, trackCount: allTracks.length, allSubmitted })

@@ -64,8 +64,15 @@ export function EnsembleSessionClient({
   const watchRef = useRef<number | null>(null)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  // Refs for stale-closure-safe access inside poll interval
+  const recordingRef = useRef(false)
+  const submittedRef = useRef(false)
 
-  // Push location to server
+  // Keep refs in sync with state
+  useEffect(() => { recordingRef.current = recording }, [recording])
+  useEffect(() => { submittedRef.current = submitted }, [submitted])
+
+  // Push location to server — stable ref, never changes
   const pushLocation = useCallback((lat: number, lng: number) => {
     fetch(`/api/ensemble/${ensembleId}/session/${sessionId}/location`, {
       method: "POST",
@@ -74,7 +81,7 @@ export function EnsembleSessionClient({
     }).catch(() => { /* best-effort */ })
   }, [ensembleId, sessionId])
 
-  // Poll lobby state every 3s
+  // Poll lobby state every 3s — uses refs to avoid stale closures
   const poll = useCallback(async () => {
     try {
       const res = await fetch(`/api/ensemble/${ensembleId}/session/${sessionId}/lobby`)
@@ -84,7 +91,7 @@ export function EnsembleSessionClient({
       setStatus(data.session.status)
 
       // If session just became ACTIVE, start recording
-      if (data.session.status === "ACTIVE" && !recording && !submitted) {
+      if (data.session.status === "ACTIVE" && !recordingRef.current && !submittedRef.current) {
         startRecording()
       }
       // If completed, redirect to result
@@ -92,7 +99,7 @@ export function EnsembleSessionClient({
         router.push(`/ensemble/${ensembleId}/session/${sessionId}/result`)
       }
     } catch { /* ignore */ }
-  }, [ensembleId, sessionId, recording, submitted]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [ensembleId, sessionId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     poll()
@@ -100,14 +107,16 @@ export function EnsembleSessionClient({
     return () => { if (pollRef.current) clearInterval(pollRef.current) }
   }, [poll])
 
-  // Geolocation — always watch in lobby to check proximity
+  // Single geolocation watch — only mount once, use ref for recording state
   useEffect(() => {
     if (!navigator.geolocation) return
+    // Clear any previous watch before setting a new one
+    if (watchRef.current !== null) navigator.geolocation.clearWatch(watchRef.current)
     watchRef.current = navigator.geolocation.watchPosition(
       (pos) => {
         const { latitude: lat, longitude: lng } = pos.coords
         pushLocation(lat, lng)
-        if (recording) {
+        if (recordingRef.current) {
           gpsRef.current.push({ lat, lng, timestamp: Date.now() })
         }
       },
@@ -115,7 +124,7 @@ export function EnsembleSessionClient({
       { enableHighAccuracy: true, maximumAge: 2000 }
     )
     return () => { if (watchRef.current !== null) navigator.geolocation.clearWatch(watchRef.current) }
-  }, [recording, pushLocation])
+  }, [pushLocation]) // removed `recording` — now uses recordingRef instead
 
   function startRecording() {
     setRecording(true)
