@@ -70,6 +70,11 @@ model User {
   pushSubscriptions      PushSubscription[]
   notificationsReceived  Notification[] @relation("NotifRecipient")
   notificationsSent      Notification[] @relation("NotifActor")
+  ownedEnsembles         Ensemble[]          @relation("EnsembleOwner")
+  ensembleMemberships    EnsembleMember[]
+  ensembleTracks         EnsembleTrack[]
+  hostedSessions         EnsembleSession[]   @relation("EnsembleSessionHost")
+  lobbyLocations         EnsembleLobbyLocation[]
 }
 
 // ─── Profile ───────────────────────────────────────────────────────────────
@@ -91,6 +96,7 @@ model Profile {
   language         String   @default("en")    // "en" | "ja"
   isPublic         Boolean  @default(true)
   onboardingDone   Boolean  @default(false)
+  ensembleTrialUsed Boolean @default(false)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
@@ -113,16 +119,19 @@ model Activity {
   stravaId    String?        @unique
   createdAt   DateTime       @default(now())
 
-  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  composition   Composition?
-  likes         Like[]
-  comments      Comment[]
-  notifications Notification[]
+  ensembleSessionId String?          @unique
+  user              User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ensembleSession   EnsembleSession? @relation(fields: [ensembleSessionId], references: [id], onDelete: SetNull)
+  composition       Composition?
+  likes             Like[]
+  comments          Comment[]
+  notifications     Notification[]
 }
 
 enum ActivitySource {
   CADENZ
   STRAVA
+  ENSEMBLE
 }
 
 // ─── Composition ───────────────────────────────────────────────────────────
@@ -263,4 +272,89 @@ model GdprConsent {
   consentedAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ─── Ensemble ──────────────────────────────────────────────────────────────
+
+model Ensemble {
+  id        String   @id @default(cuid())
+  name      String
+  ownerId   String
+  createdAt DateTime @default(now())
+
+  owner    User              @relation("EnsembleOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members  EnsembleMember[]
+  sessions EnsembleSession[]
+}
+
+model EnsembleMember {
+  ensembleId String
+  userId     String
+  role       EnsembleRole @default(MEMBER)
+  joinedAt   DateTime     @default(now())
+
+  ensemble Ensemble @relation(fields: [ensembleId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([ensembleId, userId])
+}
+
+enum EnsembleRole {
+  OWNER
+  MEMBER
+}
+
+model EnsembleSession {
+  id            String                @id @default(cuid())
+  ensembleId    String
+  hostId        String
+  status        EnsembleSessionStatus @default(LOBBY)
+  scales        String[]              // up to 2
+  startedAt     DateTime?
+  endedAt       DateTime?
+  createdAt     DateTime              @default(now())
+
+  ensemble       Ensemble               @relation(fields: [ensembleId], references: [id], onDelete: Cascade)
+  host           User                   @relation("EnsembleSessionHost", fields: [hostId], references: [id], onDelete: Cascade)
+  tracks         EnsembleTrack[]
+  lobbyLocations EnsembleLobbyLocation[]
+  activity       Activity?
+}
+
+enum EnsembleSessionStatus {
+  LOBBY
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+model EnsembleTrack {
+  id           String   @id @default(cuid())
+  sessionId    String
+  userId       String
+  instrument   String
+  scale        String
+  startingNote String
+  bpmAvg       Float?
+  midiEvents   Json
+  gpsPoints    Json
+  submittedAt  DateTime @default(now())
+
+  session EnsembleSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, userId])
+}
+
+model EnsembleLobbyLocation {
+  sessionId String
+  userId    String
+  lat       Float
+  lng       Float
+  updatedAt DateTime @updatedAt
+
+  session EnsembleSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([sessionId, userId])
 }

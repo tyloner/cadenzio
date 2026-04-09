@@ -7,6 +7,7 @@ const ja: Record<TranslationKey, string> = {
   "nav.feed":          "フィード",
   "nav.map":           "マップ",
   "nav.record":        "記録",
+  "nav.ensemble":      "アンサンブル",
   "nav.profile":       "プロフィール",
   "nav.settings":      "設定",
 

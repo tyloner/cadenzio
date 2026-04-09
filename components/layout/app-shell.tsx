@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Map, List, Plus, User, Settings, Search } from "lucide-react"
+import { Map, List, Plus, User, Settings, Search, Users } from "lucide-react"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
 import { NotificationBell } from "@/components/notification-bell"
@@ -14,11 +14,11 @@ export function AppShell({ children, lang: _lang }: { children: React.ReactNode;
   const t = useT()
 
   const NAV = [
-    { href: "/dashboard",  labelKey: "nav.feed"    as const, icon: List     },
-    { href: "/map",        labelKey: "nav.map"     as const, icon: Map      },
-    { href: "/record",     labelKey: "nav.record"  as const, icon: Plus     },
-    { href: "/profile",    labelKey: "nav.profile" as const, icon: User     },
-    { href: "/settings",   labelKey: "nav.settings"as const, icon: Settings },
+    { href: "/dashboard",  labelKey: "nav.feed"     as const, icon: List     },
+    { href: "/map",        labelKey: "nav.map"      as const, icon: Map      },
+    { href: "/record",     labelKey: "nav.record"   as const, icon: Plus     },
+    { href: "/ensemble",   labelKey: "nav.ensemble" as const, icon: Users    },
+    { href: "/profile",    labelKey: "nav.profile"  as const, icon: User     },
   ]
 
   return (

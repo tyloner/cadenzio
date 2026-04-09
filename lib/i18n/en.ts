@@ -3,6 +3,7 @@ const en = {
   "nav.feed":          "Feed",
   "nav.map":           "Map",
   "nav.record":        "Record",
+  "nav.ensemble":      "Ensemble",
   "nav.profile":       "Profile",
   "nav.settings":      "Settings",
 

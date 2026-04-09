@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import Image from "next/image"
-import { Heart, MessageCircle, Music2, Timer, Ruler, Share2 } from "lucide-react"
+import { Heart, MessageCircle, Music2, Timer, Ruler, Share2, Users } from "lucide-react"
 import { formatDuration, formatDistance, timeAgo } from "@/lib/utils"
 
 interface Props {
@@ -12,8 +12,9 @@ interface Props {
     startedAt: Date
     durationSec: number | null
     distanceM: number | null
+    source?: string
     user: { name: string | null; image: string | null }
-    composition: { genre: string; scale: string; audioUrl: string | null } | null
+    composition: { genre: string; scale: string; audioUrl: string | null; instrument?: string } | null
     _count: { likes: number; comments: number }
   }
   units?: "metric" | "imperial"
@@ -47,7 +48,12 @@ export function ActivityCard({ activity, units = "metric" }: Props) {
             <p className="text-sm font-semibold text-ink truncate">{user.name}</p>
             <p className="text-xs text-muted">{timeAgo(activity.startedAt)}</p>
           </div>
-          {composition && (
+          {activity.source === "ENSEMBLE" && (
+            <span className="flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full bg-wave/10 text-wave">
+              <Users size={11} /> Ensemble
+            </span>
+          )}
+          {composition && activity.source !== "ENSEMBLE" && (
             <span className={`text-xs font-medium px-2.5 py-1 rounded-full capitalize ${genreClass}`}>
               {composition.genre}
             </span>
