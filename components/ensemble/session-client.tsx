@@ -64,9 +64,11 @@ export function EnsembleSessionClient({
   const watchRef = useRef<number | null>(null)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  // Refs for stale-closure-safe access inside poll interval
+  // Refs for stale-closure-safe access inside poll/timer intervals
   const recordingRef = useRef(false)
   const submittedRef = useRef(false)
+  // Stable ref to submitTrack so the countdown interval always calls the latest version
+  const submitTrackRef = useRef<() => Promise<void>>(async () => {})
 
   // Keep refs in sync with state
   useEffect(() => { recordingRef.current = recording }, [recording])
@@ -127,13 +129,19 @@ export function EnsembleSessionClient({
   }, [pushLocation]) // removed `recording` — now uses recordingRef instead
 
   function startRecording() {
+    // Guard: if already recording (ref is source of truth), do nothing
+    // This prevents the poll re-triggering startRecording before the useEffect fires
+    if (recordingRef.current || timerRef.current) return
+    // Update ref synchronously so the next poll cycle sees it immediately
+    recordingRef.current = true
     setRecording(true)
     setTimeLeft(MAX_SECONDS)
     gpsRef.current = []
     timerRef.current = setInterval(() => {
       setTimeLeft((t) => {
         if (t <= 1) {
-          submitTrack()
+          // Call via ref so we always get the latest submitTrack closure
+          submitTrackRef.current()
           return 0
         }
         return t - 1
@@ -149,8 +157,9 @@ export function EnsembleSessionClient({
     // Poll will pick up ACTIVE status
   }
 
+  submitTrackRef.current = submitTrack
   async function submitTrack() {
-    if (submitting || submitted) return
+    if (submittedRef.current || submitting) return
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
     setRecording(false)
     setSubmitting(true)
@@ -166,6 +175,7 @@ export function EnsembleSessionClient({
 
     setSubmitting(false)
     if (res.ok) {
+      submittedRef.current = true
       setSubmitted(true)
       const data = await res.json()
       if (data.allSubmitted) {
