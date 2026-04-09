@@ -37,6 +37,15 @@ function bearingDeltaToStep(delta: number, scaleLength: number): number {
   return Math.round((normalized / 180) * Math.floor(scaleLength / 2))
 }
 
+// Seeded pseudo-random from GPS coords — deterministic per walk
+function seededRand(seed: number): () => number {
+  let s = seed | 0
+  return () => {
+    s = (s * 1664525 + 1013904223) & 0xffffffff
+    return (s >>> 0) / 0xffffffff
+  }
+}
+
 export function processGpsToNotes(
   points: GpsPoint[],
   startingNote: string,
@@ -52,11 +61,21 @@ export function processGpsToNotes(
 
   const rhythmPattern = GENRE_CONFIG[genre].rhythmPattern
 
+  // Deterministic randomness seeded by first GPS point — same walk = same composition
+  const rand = seededRand(Math.round(points[0].lat * 1000 + points[0].lng * 1000))
+
   const events: NoteEvent[] = []
   let currentIndex = startIndex >= 0 ? startIndex : Math.floor(scaleNotes.length / 2)
   let prevBearing: number | null = null
   let timeAccum = 0
   let rhythmCounter = 0
+  let noteCount = 0
+
+  // Phrase tracking: every 8 notes we apply a phrase-level direction shift
+  // This creates musical sentences and prevents melodic stagnation
+  const PHRASE_LENGTH = 8
+  let phraseDirection = 0  // positive = rising, negative = falling
+  let phraseSteps = 0
 
   for (let i = 1; i < points.length; i++) {
     const prev = points[i - 1]
@@ -71,39 +90,75 @@ export function processGpsToNotes(
     const duration = speedToDuration(speedMs)
 
     // Bearing delta drives note movement
+    let step = 0
     if (prevBearing !== null) {
       let delta = bearing - prevBearing
       if (delta > 180) delta -= 360
       if (delta < -180) delta += 360
-      const step = bearingDeltaToStep(delta, scaleNotes.length)
-      currentIndex = Math.max(0, Math.min(scaleNotes.length - 1, currentIndex + step))
+
+      step = bearingDeltaToStep(delta, scaleNotes.length)
+
+      // Minimum movement: straight walking creates too little variation
+      // Add ±1 drift when delta is tiny, biased by phrase direction
+      if (Math.abs(delta) < 8) {
+        const drift = phraseDirection !== 0
+          ? phraseDirection  // continue phrase direction
+          : (rand() > 0.5 ? 1 : -1)  // random when no phrase
+        step += drift
+      }
+    } else {
+      // First step: start with a small upward push for a rising opening
+      step = 1 + Math.floor(rand() * 2)
     }
-    prevBearing = bearing
+
+    // Phrase-level shaping every PHRASE_LENGTH notes
+    if (noteCount > 0 && noteCount % PHRASE_LENGTH === 0) {
+      // Alternate phrases: rising then falling, with some randomness
+      phraseDirection = phraseSteps % 2 === 0 ? 1 : -1
+      if (rand() > 0.75) phraseDirection *= -1  // occasional surprise reversal
+      phraseSteps++
+      // Add a leap at phrase boundary for musical interest (3–5 scale steps)
+      const leapMagnitude = 3 + Math.floor(rand() * 3)
+      step += phraseDirection * leapMagnitude
+    }
+
+    currentIndex = Math.max(0, Math.min(scaleNotes.length - 1, currentIndex + step))
+
+    // Octave variety: if stuck at extremes for 4+ notes, nudge toward center
+    if (currentIndex <= 2) currentIndex += 3
+    if (currentIndex >= scaleNotes.length - 3) currentIndex -= 3
 
     const note = scaleNotes[currentIndex]
-    const velocity = Math.min(1, 0.5 + speedMs * 0.05)
+
+    // Velocity: wider range based on speed (slow = soft, fast = loud)
+    // Range 0.3–0.9 gives much more expressive dynamics than the old 0.5–0.6
+    const velocity = Math.min(0.9, Math.max(0.3, 0.3 + speedMs * 0.12))
+
+    // Vary note spacing with speed: faster walking = tighter rhythmic feel
+    const stepDuration = speedMs < 1.0 ? 0.65 : speedMs < 2.0 ? 0.5 : 0.38
 
     // Lead melody note
     events.push({ note, duration, time: timeAccum, velocity, track: "lead" })
+    noteCount++
 
     // Rhythm hit — genre-specific stride, velocity accent, and swing offset
     if (rhythmEnabled && speedMs > 1.5 && i % rhythmPattern.stride === 0) {
       const accentIdx = rhythmCounter % rhythmPattern.velocityAccent.length
-      const velocity  = 0.8 * rhythmPattern.velocityAccent[accentIdx]
-      // Swing: odd hits are pushed forward by a third-beat (~0.167 s at 0.5 s/step)
+      const rVelocity  = 0.8 * rhythmPattern.velocityAccent[accentIdx]
       const swingOffset = rhythmPattern.swing && rhythmCounter % 2 === 1 ? 0.167 : 0
-      events.push({ note: 36, duration: "16n", time: timeAccum + swingOffset, velocity, track: "rhythm" })
+      events.push({ note: 36, duration: "16n", time: timeAccum + swingOffset, velocity: rVelocity, track: "rhythm" })
       rhythmCounter++
     }
 
-    // Pad chord every 8 events
+    // Pad chord every 8 events — use a richer interval (3rd above, not below)
     if (i % 8 === 0) {
-      const padNote = scaleNotes[Math.max(0, currentIndex - 4)]
-      events.push({ note: padNote, duration: "2n", time: timeAccum, velocity: 0.3, track: "pad" })
+      const padIdx = Math.min(scaleNotes.length - 1, currentIndex + 2)
+      const padNote = scaleNotes[padIdx]
+      events.push({ note: padNote, duration: "2n", time: timeAccum, velocity: 0.25 + rand() * 0.1, track: "pad" })
     }
 
-    // Advance time by a musical step (normalized, not real-time)
-    timeAccum += 0.5
+    prevBearing = bearing
+    timeAccum += stepDuration
   }
 
   return events

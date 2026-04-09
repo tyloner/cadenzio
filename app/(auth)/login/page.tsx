@@ -1,7 +1,8 @@
-import { auth, signIn } from "@/lib/auth"
+import { auth } from "@/lib/auth"
 import { redirect } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
+import { GoogleSignInButton } from "@/components/auth/google-sign-in-button"
 
 export const metadata = { title: "Sign in" }
 
@@ -25,7 +26,6 @@ export default async function LoginPage({
 
   const { error } = await searchParams
   const errorMsg = error ? (ERROR_MESSAGES[error] ?? ERROR_MESSAGES.default) : null
-  const isDev = process.env.NODE_ENV === "development"
 
   return (
     <main className="min-h-screen bg-mist flex items-center justify-center px-4">
@@ -45,37 +45,8 @@ export default async function LoginPage({
             </div>
           )}
 
-          {isDev && (
-            <form
-              action={async () => {
-                "use server"
-                await signIn("dev-login", { redirectTo: "/dashboard" })
-              }}
-            >
-              <button
-                type="submit"
-                className="w-full flex items-center justify-center gap-2 bg-ink text-white rounded-xl py-3 px-4 text-sm font-medium mb-4 hover:bg-slate transition-colors"
-              >
-                <span className="text-xs bg-beat text-white px-1.5 py-0.5 rounded font-mono">DEV</span>
-                Skip login (dev only)
-              </button>
-            </form>
-          )}
-
-          <form
-            action={async () => {
-              "use server"
-              await signIn("google", { redirectTo: "/dashboard" })
-            }}
-          >
-            <button
-              type="submit"
-              className="w-full flex items-center justify-center gap-3 border border-border rounded-xl py-3 px-4 text-sm font-medium text-ink hover:bg-mist transition-colors"
-            >
-              <GoogleIcon />
-              Continue with Google
-            </button>
-          </form>
+          {/* Client-side sign-in — avoids Safari server-action OAuth redirect issues */}
+          <GoogleSignInButton />
 
           <div className="mt-3 flex items-center gap-3 border border-border rounded-xl py-3 px-4 opacity-40 cursor-not-allowed select-none">
             <AppleIcon />
@@ -92,17 +63,6 @@ export default async function LoginPage({
         </div>
       </div>
     </main>
-  )
-}
-
-function GoogleIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-      <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z" fill="#4285F4"/>
-      <path d="M9 18c2.43 0 4.467-.806 5.956-2.18L12.048 13.56C11.243 14.1 10.211 14.42 9 14.42c-2.392 0-4.415-1.615-5.138-3.787H.957v2.332A8.997 8.997 0 0 0 9 18z" fill="#34A853"/>
-      <path d="M3.862 10.633A5.4 5.4 0 0 1 3.58 9c0-.566.098-1.115.282-1.633V5.035H.957A9.003 9.003 0 0 0 0 9c0 1.452.348 2.827.957 4.035l2.905-2.402z" fill="#FBBC05"/>
-      <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 5.035L3.862 7.367C4.585 5.195 6.608 3.58 9 3.58z" fill="#EA4335"/>
-    </svg>
   )
 }
 

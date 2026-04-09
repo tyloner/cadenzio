@@ -53,6 +53,11 @@ export function CompositionPlayer({ midiEvents, bpmAvg, genre, instrument = "pia
   const lastReportedProg = useRef(-1)
   // Pre-loaded piano sampler (lives across plays; disposed on unmount / instrument change)
   const pianoSamplerRef  = useRef<InstanceType<ToneModule["Sampler"]> | null>(null)
+  // Tracks whether piano samples actually loaded (vs timed out — important for iOS)
+  const pianoActuallyLoadedRef = useRef(false)
+  const progressAtSpeedChangeRef = useRef<number | null>(null)
+  // Stable ref to togglePlay so speed buttons can trigger it after state updates
+  const togglePlayRef = useRef<(() => Promise<void>) | null>(null)
 
   const totalDuration = midiEvents.length > 0
     ? Math.max(...midiEvents.map(e => e.time)) + 2
@@ -62,6 +67,7 @@ export function CompositionPlayer({ midiEvents, bpmAvg, genre, instrument = "pia
     setLoaded(false)
     let cancelled = false
     let timeoutId: ReturnType<typeof setTimeout> | null = null
+    pianoActuallyLoadedRef.current = false
     import("tone").then(async (mod) => {
       T.current = mod
       if (instrument === "piano") {
@@ -71,9 +77,12 @@ export function CompositionPlayer({ midiEvents, bpmAvg, genre, instrument = "pia
           baseUrl: "https://tonejs.github.io/audio/salamander/",
         })
         pianoSamplerRef.current = sampler
-        // Race against a 15s timeout so a slow/blocked CDN never freezes the button
-        const timeout = new Promise<void>(resolve => { timeoutId = setTimeout(resolve, 15_000) })
-        await Promise.race([mod.loaded(), timeout])
+        // Race against a 15s timeout — iOS Safari can be slow fetching CDN samples
+        const timeoutPromise = new Promise<"timeout">(resolve => {
+          timeoutId = setTimeout(() => resolve("timeout"), 15_000)
+        })
+        const result = await Promise.race([mod.loaded().then(() => "loaded" as const), timeoutPromise])
+        pianoActuallyLoadedRef.current = result === "loaded"
       }
       if (!cancelled) setLoaded(true)
     }).catch(() => {
@@ -110,6 +119,7 @@ export function CompositionPlayer({ midiEvents, bpmAvg, genre, instrument = "pia
     lastReportedProg.current = -1
   }
 
+  togglePlayRef.current = togglePlay
   async function togglePlay() {
     const Tone = T.current
     if (!Tone || !loaded) return
@@ -128,11 +138,13 @@ export function CompositionPlayer({ midiEvents, bpmAvg, genre, instrument = "pia
       setCurrentTime(0)
     }
 
+    // iOS Safari requires explicit resume of the AudioContext from a user gesture
     await Tone.start()
+    if (Tone.context.state !== "running") {
+      await Tone.context.resume()
+    }
 
     Tone.getTransport().bpm.value = bpmAvg ?? 90
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ;(Tone.getTransport() as any).playbackRate = speed
 
     const knownInstrument = (instrument in INSTRUMENT_CONFIG)
       ? instrument as InstrumentName
@@ -148,8 +160,8 @@ export function CompositionPlayer({ midiEvents, bpmAvg, genre, instrument = "pia
     let leadSynth: LeadSynth
     let leadOwnedByDisposables = true // false for sampler (reused across plays)
 
-    if (knownInstrument === "piano" && pianoSamplerRef.current) {
-      // Real Salamander Grand Piano samples — loaded in useEffect
+    if (knownInstrument === "piano" && pianoSamplerRef.current && pianoActuallyLoadedRef.current) {
+      // Real Salamander Grand Piano samples — only if fully loaded (iOS CDN timeout guard)
       leadSynth = pianoSamplerRef.current as unknown as LeadSynth
       leadOwnedByDisposables = false
     } else if (knownInstrument === "violin") {
@@ -208,25 +220,30 @@ export function CompositionPlayer({ midiEvents, bpmAvg, genre, instrument = "pia
     }
     rhythmSynth.connect(masterGain)
 
-    // Schedule events via Part
+    // Schedule events via Part — divide times by speed so 2× speed = half the time between notes
     const lead = midiEvents.filter(e => e.track === "lead")
     const pads = midiEvents.filter(e => e.track === "pad")
     const hits = midiEvents.filter(e => e.track === "rhythm")
 
-    const isPiano = knownInstrument === "piano"
+    const startOffset = progressAtSpeedChangeRef.current !== null
+      ? progressAtSpeedChangeRef.current * (totalDuration / speed)
+      : 0
+    progressAtSpeedChangeRef.current = null
+
+    const isPiano = knownInstrument === "piano" && pianoActuallyLoadedRef.current
     const leadPart = new Tone.Part<NoteEvent>((time, e) => {
       // Sampler needs note names for accurate pitch interpolation; synths use Hz
       const note = isPiano ? midiToNoteName(e.note) : midiToHz(e.note)
       leadSynth.triggerAttackRelease(note, e.duration, time, e.velocity)
-    }, lead.map(e => [e.time, e]) as unknown as NoteEvent[])
+    }, lead.map(e => [e.time / speed, e]) as unknown as NoteEvent[])
 
     const padPart = new Tone.Part<NoteEvent>((time, e) => {
       padSynth.triggerAttackRelease(midiToHz(e.note), "2n", time, e.velocity)
-    }, pads.map(e => [e.time, e]) as unknown as NoteEvent[])
+    }, pads.map(e => [e.time / speed, e]) as unknown as NoteEvent[])
 
     const rhythmPart = new Tone.Part<NoteEvent>((time) => {
       rhythmSynth.triggerAttackRelease("C1", "16n", time)
-    }, hits.map(e => [e.time, e]) as unknown as NoteEvent[])
+    }, hits.map(e => [e.time / speed, e]) as unknown as NoteEvent[])
 
     leadPart.start(0)
     padPart.start(0)
@@ -240,22 +257,23 @@ export function CompositionPlayer({ midiEvents, bpmAvg, genre, instrument = "pia
       leadPart, padPart, rhythmPart,
     ]
 
-    Tone.getTransport().start()
+    Tone.getTransport().start(undefined, startOffset)
     setPlaying(true)
 
+    const scaledTotal = totalDuration / speed
     const tick = () => {
       const Tone2 = T.current
       if (!Tone2) return
       const sec = Tone2.getTransport().seconds
-      const p = Math.min(1, sec / totalDuration)
-      setCurrentTime(sec)
+      const p = Math.min(1, sec / scaledTotal)
+      setCurrentTime(sec * speed) // display in "wall clock" composition time
       setProgress(p)
       // Report to map ~5×/sec (every 2% progress change)
       if (onProgress && Math.abs(p - lastReportedProg.current) >= 0.02) {
         lastReportedProg.current = p
         onProgress(p)
       }
-      if (sec >= totalDuration) {
+      if (sec >= scaledTotal) {
         cleanup()
         onProgress?.(1)
         setPlaying(false)
@@ -413,7 +431,7 @@ export function CompositionPlayer({ midiEvents, bpmAvg, genre, instrument = "pia
             />
           </div>
           <div className="flex justify-between text-xs text-muted mt-1 tabular-nums">
-            <span>{fmt(currentTime / speed)}</span>
+            <span>{fmt(currentTime)}</span>
             <span>{fmt(totalDuration / speed)}</span>
           </div>
         </div>
@@ -424,9 +442,17 @@ export function CompositionPlayer({ midiEvents, bpmAvg, genre, instrument = "pia
             <button
               key={s}
               onClick={() => {
+                if (s === speed) return
+                // Save progress fraction so togglePlay restarts from same position at new speed
+                progressAtSpeedChangeRef.current = progress
+                const wasPlaying = playing
+                cleanup()
+                setPlaying(false)
                 setSpeed(s)
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                if (T.current) (T.current.getTransport() as any).playbackRate = s
+                // If playing, auto-restart at new speed (after state updates via a micro-task)
+                if (wasPlaying) {
+                  setTimeout(() => { togglePlayRef.current?.() }, 0)
+                }
               }}
               className={`text-[10px] font-semibold px-1.5 py-0.5 rounded transition-colors leading-tight ${
                 speed === s ? "bg-wave text-white" : "text-muted hover:text-ink"
