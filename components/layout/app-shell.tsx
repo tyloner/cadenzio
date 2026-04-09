@@ -48,13 +48,15 @@ function ConductorIcon({ size = 24, className }: { size?: number; className?: st
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden>
       {/* Head */}
-      <circle cx="11" cy="7" r="3.5" />
+      <circle cx="10" cy="7" r="3.5" />
       {/* Shoulders */}
-      <path d="M 4,21 C 4,15.5 7.5,13.5 11,13.5 C 14.5,13.5 17,15 17,19" />
-      {/* Baton — extends diagonally up-right from raised hand */}
-      <line x1="16" y1="15.5" x2="22" y2="7" />
+      <path d="M 4,21 C 4,15.5 7,13.5 10,13.5 C 13,13.5 15.5,15.5 15.5,20" />
+      {/* Hand — tiny filled circle, raised and detached from body */}
+      <circle cx="20" cy="13" r="1.8" fill="currentColor" stroke="none" />
+      {/* Baton */}
+      <line x1="20" y1="11.2" x2="23.5" y2="4.5" strokeWidth="1.4" />
       {/* Baton tip */}
-      <circle cx="22" cy="7" r="1.2" fill="currentColor" stroke="none" />
+      <circle cx="23.5" cy="4.5" r="1" fill="currentColor" stroke="none" />
     </svg>
   )
 }
