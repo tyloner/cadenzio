@@ -2,23 +2,73 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Map, List, Plus, User, Settings, Search, Users, Trophy, Award } from "lucide-react"
+import { Map, Plus, Search, Trophy, Award } from "lucide-react"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
 import { NotificationBell } from "@/components/notification-bell"
 import { useT } from "@/components/layout/language-provider"
 import type { Lang } from "@/lib/i18n"
 
+function StaffIcon({ size = 24, className }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
+      <line x1="2" y1="5"    x2="22" y2="5"    stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      <line x1="2" y1="8.5"  x2="22" y2="8.5"  stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      <line x1="2" y1="12"   x2="22" y2="12"   stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      <line x1="2" y1="15.5" x2="22" y2="15.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      <line x1="2" y1="19"   x2="22" y2="19"   stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      {/* Note 1 — between lines 4 & 5 */}
+      <ellipse cx="8" cy="17.2" rx="2.8" ry="2" transform="rotate(-15 8 17.2)" fill="currentColor" />
+      <line x1="10.6" y1="16.5" x2="10.6" y2="6.5" stroke="currentColor" strokeWidth="1.4" />
+      {/* Note 2 — between lines 2 & 3 */}
+      <ellipse cx="16.5" cy="10.2" rx="2.8" ry="2" transform="rotate(-15 16.5 10.2)" fill="currentColor" />
+      <line x1="19.1" y1="9.5" x2="19.1" y2="0.5" stroke="currentColor" strokeWidth="1.4" />
+    </svg>
+  )
+}
+
+function EnsembleIcon({ size = 24, className }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
+      {/* Three ascending notes with a shared beam */}
+      <line x1="5"  y1="19" x2="5"  y2="7"  stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      <line x1="12" y1="17" x2="12" y2="5.5" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      <line x1="19" y1="15" x2="19" y2="4"  stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      {/* Shared beam */}
+      <line x1="5" y1="7" x2="19" y2="4" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+      {/* Note heads */}
+      <ellipse cx="5"  cy="19.5" rx="3" ry="2.1" transform="rotate(-15 5 19.5)"  fill="currentColor" />
+      <ellipse cx="12" cy="17.5" rx="3" ry="2.1" transform="rotate(-15 12 17.5)" fill="currentColor" />
+      <ellipse cx="19" cy="15.5" rx="3" ry="2.1" transform="rotate(-15 19 15.5)" fill="currentColor" />
+    </svg>
+  )
+}
+
+function ConductorIcon({ size = 24, className }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden>
+      {/* Head */}
+      <circle cx="11" cy="7" r="3.5" />
+      {/* Shoulders */}
+      <path d="M 4,21 C 4,15.5 7.5,13.5 11,13.5 C 14.5,13.5 17,15 17,19" />
+      {/* Baton — extends diagonally up-right from raised hand */}
+      <line x1="16" y1="15.5" x2="22" y2="7" />
+      {/* Baton tip */}
+      <circle cx="22" cy="7" r="1.2" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
+
 export function AppShell({ children, lang: _lang }: { children: React.ReactNode; lang?: Lang }) {
   const pathname = usePathname()
   const t = useT()
 
   const NAV = [
-    { href: "/dashboard",  labelKey: "nav.feed"     as const, icon: List     },
-    { href: "/map",        labelKey: "nav.map"      as const, icon: Map      },
-    { href: "/record",     labelKey: "nav.record"   as const, icon: Plus     },
-    { href: "/ensemble",   labelKey: "nav.ensemble" as const, icon: Users    },
-    { href: "/profile",    labelKey: "nav.profile"  as const, icon: User     },
+    { href: "/dashboard",  labelKey: "nav.feed"     as const, icon: StaffIcon     },
+    { href: "/map",        labelKey: "nav.map"      as const, icon: Map           },
+    { href: "/record",     labelKey: "nav.record"   as const, icon: Plus          },
+    { href: "/ensemble",   labelKey: "nav.ensemble" as const, icon: EnsembleIcon  },
+    { href: "/profile",    labelKey: "nav.profile"  as const, icon: ConductorIcon },
   ]
 
   return (
