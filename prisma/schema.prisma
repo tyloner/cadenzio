@@ -114,6 +114,8 @@ model Activity {
   composition       Composition?
   likes             Like[]
   notifications     Notification[]
+
+  @@index([userId, startedAt(sort: Desc)])
 }
 
 model Composition {

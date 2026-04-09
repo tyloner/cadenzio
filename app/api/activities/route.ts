@@ -9,18 +9,25 @@ import type { ScaleName, GenreName, InstrumentName } from "@/lib/music-engine/sc
 import type { Prisma } from "@prisma/client"
 
 export async function GET(req: NextRequest) {
-  const session = await auth()
-  if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  try {
+    const session = await auth()
+    if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
-  const activities = await db.activity.findMany({
-    where: { userId: session.user.id },
-    orderBy: { startedAt: "desc" },
-    include: { composition: true },
-  })
-  return NextResponse.json(activities)
+    const activities = await db.activity.findMany({
+      where: { userId: session.user.id },
+      orderBy: { startedAt: "desc" },
+      take: 100,
+      include: { composition: true },
+    })
+    return NextResponse.json(activities)
+  } catch (err) {
+    console.error("[GET /api/activities]", err)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
 }
 
 export async function POST(req: NextRequest) {
+  try {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
@@ -33,6 +40,10 @@ export async function POST(req: NextRequest) {
   ])
   const isPro = subscription?.tier === "PRO"
   const { title, gpsTrack, durationSec, distanceM, startingNote, scale, genre, instrument } = body
+
+  if (!Array.isArray(gpsTrack) || gpsTrack.length < 2) {
+    return NextResponse.json({ error: "Invalid GPS track" }, { status: 400 })
+  }
 
   // Enforce free tier caps — both checks in parallel
   if (!isPro) {
@@ -146,4 +157,8 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json({ activityId: activity.id, newlyRevealedChallenge }, { status: 201 })
+  } catch (err) {
+    console.error("[POST /api/activities]", err)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
 }

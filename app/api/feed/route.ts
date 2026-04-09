@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 
 export async function GET(req: NextRequest) {
+  try {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
@@ -39,4 +40,8 @@ export async function GET(req: NextRequest) {
   const nextCursor = hasMore ? page[page.length - 1].startedAt.toISOString() : null
 
   return NextResponse.json({ activities: page, nextCursor })
+  } catch (err) {
+    console.error("[GET /api/feed]", err)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
 }
