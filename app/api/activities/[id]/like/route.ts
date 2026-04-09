@@ -22,7 +22,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
   ])
   if (activity && activity.userId !== actorId) {
     await db.notification.upsert({
-      where: { actorId_type_activityId: { actorId, type: "LIKE", activityId: id } },
+      where: { actorId_type_activityId_ensembleId: { actorId, type: "LIKE", activityId: id, ensembleId: null as unknown as string } },
       create: { userId: activity.userId, actorId, type: "LIKE", activityId: id },
       update: { isRead: false, createdAt: new Date() },
     })

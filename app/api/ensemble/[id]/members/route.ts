@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { NextResponse } from "next/server"
+import { sendPush } from "@/lib/push"
 
 // POST /api/ensemble/[id]/members — invite user by username
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -10,7 +11,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const { id: ensembleId } = await params
 
   // Only owner can invite
-  const ensemble = await db.ensemble.findUnique({ where: { id: ensembleId } })
+  const ensemble = await db.ensemble.findUnique({
+    where: { id: ensembleId },
+    select: { id: true, name: true, ownerId: true },
+  })
   if (!ensemble) return NextResponse.json({ error: "Not found" }, { status: 404 })
   if (ensemble.ownerId !== userId) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
@@ -32,10 +36,41 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   })
   if (existing) return NextResponse.json({ error: "Already a member" }, { status: 400 })
 
-  const member = await db.ensembleMember.create({
-    data: { ensembleId, userId: profile.userId, role: "MEMBER" },
-    include: { user: { select: { id: true, name: true, image: true } } },
+  const [member, actor] = await Promise.all([
+    db.ensembleMember.create({
+      data: { ensembleId, userId: profile.userId, role: "MEMBER" },
+      include: { user: { select: { id: true, name: true, image: true } } },
+    }),
+    db.user.findUnique({ where: { id: userId }, select: { name: true } }),
+  ])
+
+  // In-app notification — upsert so re-inviting updates rather than errors
+  await db.notification.upsert({
+    where: {
+      actorId_type_activityId_ensembleId: {
+        actorId: userId,
+        type: "ENSEMBLE_INVITE",
+        activityId: null as unknown as string,
+        ensembleId,
+      },
+    },
+    create: {
+      userId: profile.userId,
+      actorId: userId,
+      type: "ENSEMBLE_INVITE",
+      ensembleId,
+      body: ensemble.name,
+      isRead: false,
+    },
+    update: { isRead: false, createdAt: new Date() },
   })
+
+  // Push notification (best-effort)
+  sendPush(profile.userId, {
+    title: "Ensemble invitation",
+    body: `${actor?.name ?? "Someone"} added you to "${ensemble.name}"`,
+    url: `/ensemble/${ensembleId}`,
+  }).catch(() => {})
 
   return NextResponse.json(member, { status: 201 })
 }

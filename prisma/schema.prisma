@@ -197,6 +197,7 @@ model Notification {
   actorId    String
   type       NotificationType
   activityId String?
+  ensembleId String?
   body       String?
   isRead     Boolean          @default(false)
   createdAt  DateTime         @default(now())
@@ -204,7 +205,7 @@ model Notification {
   actor      User             @relation("NotifActor", fields: [actorId], references: [id], onDelete: Cascade)
   user       User             @relation("NotifRecipient", fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([actorId, type, activityId])
+  @@unique([actorId, type, activityId, ensembleId])
 }
 
 model PushSubscription {
@@ -307,6 +308,8 @@ enum NotificationType {
   LIKE
   COMMENT
   FOLLOW
+  ENSEMBLE_INVITE
+  ENSEMBLE_SESSION
 }
 
 enum EnsembleRole {

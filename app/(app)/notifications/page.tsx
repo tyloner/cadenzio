@@ -3,22 +3,26 @@ import { db } from "@/lib/db"
 import { notFound } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
-import { Heart, MessageCircle, UserPlus, Bell } from "lucide-react"
+import { Heart, MessageCircle, UserPlus, Bell, Users, Music2 } from "lucide-react"
 import { timeAgo } from "@/lib/utils"
 import { MarkNotificationsRead } from "./mark-read"
 
 export const metadata = { title: "Notifications" }
 
 const TYPE_ICON = {
-  LIKE:    { icon: Heart,         color: "text-beat",  bg: "bg-beat/10"  },
-  COMMENT: { icon: MessageCircle, color: "text-wave",  bg: "bg-wave/10"  },
-  FOLLOW:  { icon: UserPlus,      color: "text-ink",   bg: "bg-mist"     },
+  LIKE:             { icon: Heart,         color: "text-beat",   bg: "bg-beat/10"   },
+  COMMENT:          { icon: MessageCircle, color: "text-wave",   bg: "bg-wave/10"   },
+  FOLLOW:           { icon: UserPlus,      color: "text-ink",    bg: "bg-mist"      },
+  ENSEMBLE_INVITE:  { icon: Users,         color: "text-wave",   bg: "bg-wave/10"   },
+  ENSEMBLE_SESSION: { icon: Music2,        color: "text-beat",   bg: "bg-beat/10"   },
 }
 
 const TYPE_LABEL = {
-  LIKE:    "liked your composition",
-  COMMENT: "commented on your composition",
-  FOLLOW:  "started following you",
+  LIKE:             "liked your composition",
+  COMMENT:          "commented on your composition",
+  FOLLOW:           "started following you",
+  ENSEMBLE_INVITE:  "added you to their ensemble",
+  ENSEMBLE_SESSION: "started a session — tap to join",
 }
 
 export default async function NotificationsPage() {
@@ -33,6 +37,7 @@ export default async function NotificationsPage() {
       actor: { select: { name: true, image: true, profile: { select: { username: true } } } },
       activity: { select: { id: true, title: true } },
     },
+    // ensembleId is on the model — returned automatically
   })
 
   return (
@@ -53,11 +58,13 @@ export default async function NotificationsPage() {
           {notifications.map((n) => {
             const { icon: Icon, color, bg } = TYPE_ICON[n.type]
             const label = TYPE_LABEL[n.type]
-            const href = n.activity
-              ? `/activity/${n.activity.id}`
-              : n.actor.profile?.username
-                ? `/profile/${n.actor.profile.username}`
-                : "/dashboard"
+            const href = n.ensembleId
+              ? `/ensemble/${n.ensembleId}`
+              : n.activity
+                ? `/activity/${n.activity.id}`
+                : n.actor.profile?.username
+                  ? `/profile/${n.actor.profile.username}`
+                  : "/dashboard"
 
             return (
               <Link
@@ -84,6 +91,9 @@ export default async function NotificationsPage() {
                   <p className="text-sm text-ink leading-snug">
                     <span className="font-semibold">{n.actor.name}</span>{" "}
                     {label}
+                    {n.body && (n.type === "ENSEMBLE_INVITE" || n.type === "ENSEMBLE_SESSION") && (
+                      <span className="text-muted"> · {n.body}</span>
+                    )}
                     {n.activity && (
                       <span className="text-muted"> · {n.activity.title}</span>
                     )}

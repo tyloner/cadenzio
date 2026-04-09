@@ -1,6 +1,7 @@
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { NextResponse } from "next/server"
+import { sendPush } from "@/lib/push"
 
 // POST /api/ensemble/[id]/session — create a new lobby session (owner only)
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -11,15 +12,18 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
 
   const ensemble = await db.ensemble.findUnique({
     where: { id: ensembleId },
-    include: { members: true },
+    include: { members: { include: { user: { select: { id: true, name: true } } } } },
   })
   if (!ensemble) return NextResponse.json({ error: "Not found" }, { status: 404 })
   if (ensemble.ownerId !== userId) return NextResponse.json({ error: "Only the owner can start a session" }, { status: 403 })
   if (ensemble.members.length < 2) return NextResponse.json({ error: "Need at least 2 members" }, { status: 400 })
 
   // Premium gate: check trial
-  const profile = await db.profile.findUnique({ where: { userId }, select: { ensembleTrialUsed: true } })
-  const sub = await db.subscription.findUnique({ where: { userId }, select: { tier: true } })
+  const [profile, sub, actor] = await Promise.all([
+    db.profile.findUnique({ where: { userId }, select: { ensembleTrialUsed: true } }),
+    db.subscription.findUnique({ where: { userId }, select: { tier: true } }),
+    db.user.findUnique({ where: { id: userId }, select: { name: true } }),
+  ])
   const isPro = sub?.tier === "PRO"
 
   if (!isPro && profile?.ensembleTrialUsed) {
@@ -46,6 +50,45 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       host: { select: { id: true, name: true, image: true } },
     },
   })
+
+  // Notify all non-owner members — in-app + push
+  const nonOwnerMembers = ensemble.members.filter((m) => m.userId !== userId)
+  const sessionUrl = `/ensemble/${ensembleId}/session/${newSession.id}`
+  const hostName = actor?.name ?? "The host"
+  const ensembleName = ensemble.name
+
+  await Promise.allSettled([
+    // In-app notifications
+    ...nonOwnerMembers.map((m) =>
+      db.notification.upsert({
+        where: {
+          actorId_type_activityId_ensembleId: {
+            actorId: userId,
+            type: "ENSEMBLE_SESSION",
+            activityId: null as unknown as string,
+            ensembleId,
+          },
+        },
+        create: {
+          userId: m.userId,
+          actorId: userId,
+          type: "ENSEMBLE_SESSION",
+          ensembleId,
+          body: ensembleName,
+          isRead: false,
+        },
+        update: { userId: m.userId, isRead: false, createdAt: new Date() },
+      })
+    ),
+    // Push notifications
+    ...nonOwnerMembers.map((m) =>
+      sendPush(m.userId, {
+        title: `🎵 ${ensembleName} — session starting!`,
+        body: `${hostName} has started a session. Tap to join and accept.`,
+        url: sessionUrl,
+      }).catch(() => {})
+    ),
+  ])
 
   return NextResponse.json(newSession, { status: 201 })
 }
