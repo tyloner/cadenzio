@@ -129,7 +129,8 @@ export function CompositionPlayer({ midiEvents, bpmAvg, genre, instrument = "pia
     await Tone.start()
 
     Tone.getTransport().bpm.value = bpmAvg ?? 90
-    Tone.getTransport().playbackRate = speed
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(Tone.getTransport() as any).playbackRate = speed
 
     const knownInstrument = (instrument in INSTRUMENT_CONFIG)
       ? instrument as InstrumentName
@@ -422,7 +423,8 @@ export function CompositionPlayer({ midiEvents, bpmAvg, genre, instrument = "pia
               key={s}
               onClick={() => {
                 setSpeed(s)
-                if (T.current) T.current.getTransport().playbackRate = s
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                if (T.current) (T.current.getTransport() as any).playbackRate = s
               }}
               className={`text-[10px] font-semibold px-1.5 py-0.5 rounded transition-colors leading-tight ${
                 speed === s ? "bg-wave text-white" : "text-muted hover:text-ink"
