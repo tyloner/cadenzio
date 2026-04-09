@@ -1,11 +1,18 @@
 import webpush from "web-push"
 import { db } from "@/lib/db"
 
-if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+// Only initialize if keys look valid (65 bytes decoded = 87 base64 chars for public key)
+const vapidReady =
+  process.env.VAPID_PUBLIC_KEY &&
+  process.env.VAPID_PRIVATE_KEY &&
+  process.env.VAPID_PUBLIC_KEY.length > 10 &&
+  process.env.VAPID_PRIVATE_KEY.length > 10
+
+if (vapidReady) {
   webpush.setVapidDetails(
     `mailto:${process.env.VAPID_EMAIL ?? "hello@cadenz.io"}`,
-    process.env.VAPID_PUBLIC_KEY,
-    process.env.VAPID_PRIVATE_KEY,
+    process.env.VAPID_PUBLIC_KEY!,
+    process.env.VAPID_PRIVATE_KEY!,
   )
 }
 
@@ -17,7 +24,7 @@ interface PushPayload {
 
 /** Send a push notification to all subscriptions for a user. Silently drops expired/invalid subs. */
 export async function sendPush(userId: string, payload: PushPayload) {
-  if (!process.env.VAPID_PUBLIC_KEY) return // push not configured
+  if (!vapidReady) return // push not configured
 
   const subs = await db.pushSubscription.findMany({ where: { userId } })
   if (subs.length === 0) return

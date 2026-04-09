@@ -62,8 +62,6 @@ jobs:
           STRIPE_WEBHOOK_SECRET: "whsec_stub"
           STRIPE_PRO_MONTHLY_PRICE_ID: "price_stub"
           STRIPE_PRO_YEARLY_PRICE_ID: "price_stub"
-          VAPID_PUBLIC_KEY: "stub"
-          VAPID_PRIVATE_KEY: "stub"
           VAPID_EMAIL: "qa@cadenzio.app"
           AUTH_GOOGLE_ID: "stub"
           AUTH_GOOGLE_SECRET: "stub"
