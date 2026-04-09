@@ -3,10 +3,11 @@
 import { useState } from "react"
 import dynamic from "next/dynamic"
 import Link from "next/link"
-import { Map, List, Music2, Timer } from "lucide-react"
+import { Map, List, Music2, Timer, Footprints } from "lucide-react"
 import { formatDuration, formatDistance, timeAgo } from "@/lib/utils"
 
 const FeedMap = dynamic(() => import("./feed-map"), { ssr: false })
+const MyActivitiesMap = dynamic(() => import("./my-activities-map"), { ssr: false })
 
 interface Activity {
   id: string
@@ -20,6 +21,22 @@ interface Activity {
   _count: { likes: number }
 }
 
+interface MyActivity {
+  id: string
+  title: string
+  distanceM: number | null
+  gpsTrack: unknown
+  composition: { genre: string } | null
+}
+
+interface Props {
+  activities: Activity[]
+  currentUserId: string | null
+  units?: "metric" | "imperial"
+  myActivities?: MyActivity[]
+  myStats?: { totalWalks: number; totalDistanceM: number }
+}
+
 const GENRE_COLORS: Record<string, string> = {
   blues: "bg-blue-100 text-blue-700",
   classical: "bg-purple-100 text-purple-700",
@@ -28,8 +45,8 @@ const GENRE_COLORS: Record<string, string> = {
   electronic: "bg-pink-100 text-pink-700",
 }
 
-export function MapFeedView({ activities, units = "metric" }: { activities: Activity[]; currentUserId: string | null; units?: "metric" | "imperial" }) {
-  const [view, setView] = useState<"map" | "list">("map")
+export function MapFeedView({ activities, currentUserId, units = "metric", myActivities = [], myStats }: Props) {
+  const [view, setView] = useState<"map" | "mine" | "list">("map")
 
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)]">
@@ -37,27 +54,62 @@ export function MapFeedView({ activities, units = "metric" }: { activities: Acti
       <div className="flex items-center gap-1 px-4 py-3 border-b border-border bg-surface">
         <button
           onClick={() => setView("map")}
-          className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
             view === "map" ? "bg-wave text-white" : "text-muted hover:text-ink"
           }`}
         >
-          <Map size={14} /> Map
+          <Map size={14} /> Discover
         </button>
+        {currentUserId && (
+          <button
+            onClick={() => setView("mine")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+              view === "mine" ? "bg-wave text-white" : "text-muted hover:text-ink"
+            }`}
+          >
+            <Footprints size={14} /> My Walks
+          </button>
+        )}
         <button
           onClick={() => setView("list")}
-          className={`flex items-center gap-1.5 px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
             view === "list" ? "bg-wave text-white" : "text-muted hover:text-ink"
           }`}
         >
           <List size={14} /> List
         </button>
-        <span className="ml-auto text-xs text-muted">{activities.length} compositions</span>
+        <span className="ml-auto text-xs text-muted">{activities.length} public</span>
       </div>
 
-      {/* Map view */}
+      {/* My stats bar */}
+      {view === "mine" && myStats && (
+        <div className="flex items-center gap-6 px-4 py-2.5 bg-wave/5 border-b border-wave/10 text-sm">
+          <span className="font-semibold text-ink">{myStats.totalWalks} walk{myStats.totalWalks !== 1 ? "s" : ""}</span>
+          <span className="text-muted">{formatDistance(myStats.totalDistanceM, units)} total</span>
+        </div>
+      )}
+
+      {/* Discover map */}
       {view === "map" && (
         <div className="flex-1">
           <FeedMap activities={activities} />
+        </div>
+      )}
+
+      {/* My walks map */}
+      {view === "mine" && (
+        <div className="flex-1">
+          {myActivities.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full gap-3 text-center px-6">
+              <Footprints size={32} className="text-wave/40" />
+              <p className="text-muted text-sm">No walks recorded yet.</p>
+              <Link href="/record" className="text-wave text-sm font-medium hover:underline">
+                Start your first walk →
+              </Link>
+            </div>
+          ) : (
+            <MyActivitiesMap activities={myActivities} />
+          )}
         </div>
       )}
 
@@ -94,12 +146,8 @@ export function MapFeedView({ activities, units = "metric" }: { activities: Acti
                       {a.durationSec && (
                         <span className="flex items-center gap-1"><Timer size={11} />{formatDuration(a.durationSec)}</span>
                       )}
-                      {a.distanceM && (
-                        <span>{formatDistance(a.distanceM, units)}</span>
-                      )}
-                      {track?.length > 0 && (
-                        <span className="text-wave">{track.length} clefs</span>
-                      )}
+                      {a.distanceM && <span>{formatDistance(a.distanceM, units)}</span>}
+                      {track?.length > 0 && <span className="text-wave">{track.length} clefs</span>}
                     </div>
                   </div>
                 </Link>

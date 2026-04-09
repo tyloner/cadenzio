@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Map, List, Plus, User, Settings, Search, Users } from "lucide-react"
+import { Map, List, Plus, User, Settings, Search, Users, Trophy, Award } from "lucide-react"
 import Image from "next/image"
 import { cn } from "@/lib/utils"
 import { NotificationBell } from "@/components/notification-bell"
@@ -29,6 +29,12 @@ export function AppShell({ children, lang: _lang }: { children: React.ReactNode;
           <Image src="/assets/logo.svg" alt="Cadenzio" width={100} height={28} priority />
         </Link>
         <div className="flex items-center gap-1">
+          <Link href="/hall" className="p-2 text-muted hover:text-ink transition-colors" aria-label="Hall of the Great">
+            <Trophy size={20} />
+          </Link>
+          <Link href="/challenges" className="p-2 text-muted hover:text-ink transition-colors" aria-label="Challenges">
+            <Award size={20} />
+          </Link>
           <Link href="/search" className="p-2 text-muted hover:text-ink transition-colors">
             <Search size={20} />
           </Link>

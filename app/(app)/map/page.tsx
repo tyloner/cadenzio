@@ -6,11 +6,10 @@ export const metadata = { title: "Map" }
 
 export default async function MapPage() {
   const session = await auth()
+  const userId = session?.user?.id ?? null
 
-  const [viewerProfile, activities] = await Promise.all([
-    session?.user?.id
-      ? db.profile.findUnique({ where: { userId: session.user.id }, select: { units: true } })
-      : null,
+  const [viewerProfile, activities, myActivities] = await Promise.all([
+    userId ? db.profile.findUnique({ where: { userId }, select: { units: true } }) : null,
     db.activity.findMany({
       where: { isPublic: true },
       orderBy: { startedAt: "desc" },
@@ -27,9 +26,30 @@ export default async function MapPage() {
         _count: { select: { likes: true } },
       },
     }),
+    userId ? db.activity.findMany({
+      where: { userId },
+      orderBy: { startedAt: "desc" },
+      take: 200,
+      select: {
+        id: true,
+        title: true,
+        distanceM: true,
+        gpsTrack: true,
+        composition: { select: { genre: true } },
+      },
+    }) : [],
   ])
 
   const units = (viewerProfile?.units ?? "metric") as "metric" | "imperial"
+  const totalDistance = myActivities.reduce((s, a) => s + (a.distanceM ?? 0), 0)
 
-  return <MapFeedView activities={activities} currentUserId={session?.user?.id ?? null} units={units} />
+  return (
+    <MapFeedView
+      activities={activities}
+      currentUserId={userId}
+      units={units}
+      myActivities={myActivities}
+      myStats={{ totalWalks: myActivities.length, totalDistanceM: totalDistance }}
+    />
+  )
 }
