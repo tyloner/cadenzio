@@ -7,6 +7,7 @@ import Image from "next/image"
 import { cn } from "@/lib/utils"
 import { NotificationBell } from "@/components/notification-bell"
 import { useT } from "@/components/layout/language-provider"
+import { ScurryingNotes } from "@/components/layout/scurrying-notes"
 import type { Lang } from "@/lib/i18n"
 
 function StaffIcon({ size = 24, className }: { size?: number; className?: string }) {
@@ -75,6 +76,7 @@ export function AppShell({ children, lang: _lang }: { children: React.ReactNode;
 
   return (
     <div className="flex flex-col min-h-screen max-w-2xl mx-auto relative">
+      <ScurryingNotes />
       {/* Top bar */}
       <header className="sticky top-0 z-40 bg-surface border-b border-border flex items-center justify-between px-4 h-14">
         <Link href="/dashboard">
