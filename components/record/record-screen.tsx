@@ -236,7 +236,7 @@ export function RecordScreen({ isPro, userId, units = "metric", usedSeconds = 0 
         <button
           onClick={stopRecording}
           disabled={points.length < 5}
-          className="w-full flex items-center justify-center gap-3 bg-beat text-white font-semibold rounded-2xl py-4 recording-pulse hover:bg-beat-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full flex items-center justify-center gap-3 bg-wave text-white font-semibold rounded-2xl py-4 recording-pulse hover:bg-wave/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           style={{ WebkitTapHighlightColor: "transparent", touchAction: "manipulation" }}
         >
           <Square size={20} fill="white" />

@@ -90,12 +90,18 @@ export async function POST(req: NextRequest) {
     },
   })
 
-  // Update profile stats
-  const updatedProfile = await db.profile.update({
+  // Update profile stats — upsert guards against missing profile after data wipe
+  const updatedProfile = await db.profile.upsert({
     where: { userId },
-    data: {
+    update: {
       totalActivities: { increment: 1 },
       totalDistance: { increment: distanceM ?? 0 },
+    },
+    create: {
+      userId,
+      username: `user_${userId.slice(-8)}`,
+      totalActivities: 1,
+      totalDistance: distanceM ?? 0,
     },
     select: { totalActivities: true, badges: true, revealedChallenges: true },
   })

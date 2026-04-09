@@ -25,7 +25,6 @@ export function EnsembleCreateForm() {
     if (!res.ok) { setError(data.error ?? "Failed"); return }
     setOpen(false)
     setName("")
-    router.refresh()
     router.push(`/ensemble/${data.id}`)
   }
 
