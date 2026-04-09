@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import dynamic from "next/dynamic"
-import { Square, Loader2, Music2, Navigation } from "lucide-react"
+import { Square, Loader2, Music2, Navigation, Pause, Play } from "lucide-react"
 import { haversineDistance, computeBearing, formatDuration, formatDistance } from "@/lib/utils"
 import { FREE_LIMITS } from "@/lib/constants"
 import type { GpsPoint } from "@/lib/music-engine/gps-processor"
@@ -12,45 +12,169 @@ import { useT } from "@/components/layout/language-provider"
 
 const RecordMap = dynamic(() => import("./record-map"), { ssr: false })
 
-type RecordState = "idle" | "recording" | "processing" | "done"
+type RecordState = "idle" | "recording" | "paused" | "processing"
 
 interface Props {
   isPro: boolean
   userId: string
   units?: "metric" | "imperial"
-  usedSeconds?: number  // combined seconds already recorded (free tier)
+  usedSeconds?: number
 }
 
-// Exponential moving average for compass smoothing
-const BEARING_ALPHA = 0.25 // lower = smoother, higher = more responsive
+const BEARING_ALPHA = 0.25
 
 export function RecordScreen({ isPro, userId, units = "metric", usedSeconds = 0 }: Props) {
   const router = useRouter()
   const t = useT()
   const [state, setState] = useState<RecordState>("idle")
   const [settings, setSettings] = useState<{
-    startingNote: string
-    scale: string
-    genre: string
-    title: string
-    instrument: string
+    startingNote: string; scale: string; genre: string; title: string; instrument: string
   } | null>(null)
 
-  const [points, setPoints] = useState<GpsPoint[]>([])
-  const [elapsed, setElapsed] = useState(0)
+  const [points, setPoints]     = useState<GpsPoint[]>([])
+  const [elapsed, setElapsed]   = useState(0)
   const [distance, setDistance] = useState(0)
-  const [bearing, setBearing] = useState(0)
-  const [error, setError] = useState<string | null>(null)
+  const [bearing, setBearing]   = useState(0)
+  const [error, setError]       = useState<string | null>(null)
 
-  const watchIdRef = useRef<number | null>(null)
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const startTimeRef = useRef<number>(0)
-  const smoothedBearingRef = useRef<number>(0)
-  const stopRecordingRef = useRef<() => Promise<void>>(() => Promise.resolve())
+  const watchIdRef          = useRef<number | null>(null)
+  const timerRef            = useRef<ReturnType<typeof setInterval> | null>(null)
+  const startTimeRef        = useRef<number>(0)        // wall-clock when last (re)started
+  const elapsedAtPauseRef   = useRef<number>(0)        // accumulated secs before last pause
+  const smoothedBearingRef  = useRef<number>(0)
+  const lastHeadingRef      = useRef<number | null>(null) // last known device compass heading
+  const wakeLockRef         = useRef<WakeLockSentinel | null>(null)
 
-  // Remaining seconds for free tier (combined across all recordings)
+  // Stable refs so callbacks don't go stale
+  const stateRef    = useRef<RecordState>("idle")
+  const pointsRef   = useRef<GpsPoint[]>([])
+  const settingsRef = useRef(settings)
+  const distanceRef = useRef(0)
+  const elapsedRef  = useRef(0)
+
+  useEffect(() => { stateRef.current = state },    [state])
+  useEffect(() => { pointsRef.current = points },  [points])
+  useEffect(() => { settingsRef.current = settings }, [settings])
+  useEffect(() => { distanceRef.current = distance }, [distance])
+  useEffect(() => { elapsedRef.current = elapsed },   [elapsed])
+
   const remainingSeconds = isPro ? Infinity : Math.max(0, FREE_LIMITS.MAX_RECORDING_SECONDS - usedSeconds)
 
+  // ── Wake Lock ──────────────────────────────────────────────────────────────
+  const requestWakeLock = useCallback(async () => {
+    if (!("wakeLock" in navigator)) return
+    try {
+      wakeLockRef.current = await (navigator.wakeLock as WakeLock).request("screen")
+    } catch { /* denied or unsupported — silent */ }
+  }, [])
+
+  const releaseWakeLock = useCallback(() => {
+    wakeLockRef.current?.release().catch(() => {})
+    wakeLockRef.current = null
+  }, [])
+
+  // Re-acquire wake lock if the screen came back on while recording
+  useEffect(() => {
+    const onVisibility = () => {
+      if (document.visibilityState === "visible" && stateRef.current === "recording") {
+        requestWakeLock()
+      }
+    }
+    document.addEventListener("visibilitychange", onVisibility)
+    return () => document.removeEventListener("visibilitychange", onVisibility)
+  }, [requestWakeLock])
+
+  // ── GPS watch (shared between start and resume) ────────────────────────────
+  const startGpsWatch = useCallback(() => {
+    watchIdRef.current = navigator.geolocation.watchPosition(
+      (pos) => {
+        const { latitude: lat, longitude: lng } = pos.coords
+        const ts = pos.timestamp
+        // Use device compass heading when available — more stable than computed bearing
+        const deviceHeading = pos.coords.heading != null && !isNaN(pos.coords.heading)
+          ? pos.coords.heading
+          : null
+        if (deviceHeading !== null) lastHeadingRef.current = deviceHeading
+
+        setPoints((prev) => {
+          const next = [...prev, { lat, lng, timestamp: ts, heading: deviceHeading ?? lastHeadingRef.current }]
+
+          if (prev.length > 0) {
+            const last = prev[prev.length - 1]
+            setDistance((d) => d + haversineDistance(last.lat, last.lng, lat, lng))
+
+            // Prefer device heading for compass display; fall back to computed bearing
+            const rawBearing = deviceHeading != null
+              ? deviceHeading
+              : computeBearing(last.lat, last.lng, lat, lng)
+
+            let delta = rawBearing - smoothedBearingRef.current
+            if (delta > 180)  delta -= 360
+            if (delta < -180) delta += 360
+            const smoothed = (smoothedBearingRef.current + BEARING_ALPHA * delta + 360) % 360
+            smoothedBearingRef.current = smoothed
+            setBearing(smoothed)
+          }
+          return next
+        })
+      },
+      (err) => setError(`GPS error: ${err.message}`),
+      // timeout: 30s — longer than default so a brief screen-off doesn't kill the watch
+      { enableHighAccuracy: true, maximumAge: 2000, timeout: 30000 }
+    )
+  }, [])
+
+  // ── Timer ──────────────────────────────────────────────────────────────────
+  const startTimer = useCallback(() => {
+    startTimeRef.current = Date.now() - elapsedAtPauseRef.current * 1000
+    timerRef.current = setInterval(() => {
+      const secs = Math.floor((Date.now() - startTimeRef.current) / 1000)
+      setElapsed(secs)
+      if (!isPro && secs >= remainingSeconds) {
+        // Time's up — stop automatically (use refs to avoid stale closure)
+        stopRecordingRef.current()
+      }
+    }, 1000)
+  }, [isPro, remainingSeconds])
+
+  // ── Start recording ────────────────────────────────────────────────────────
+  const startRecording = useCallback(() => {
+    if (!navigator.geolocation) { setError("Geolocation is not supported."); return }
+    if (!isPro && remainingSeconds <= 0) {
+      setError("Free recording allowance used. Upgrade to Pro for unlimited recordings.")
+      return
+    }
+    elapsedAtPauseRef.current = 0
+    setState("recording")
+    startTimer()
+    startGpsWatch()
+    requestWakeLock()
+  }, [isPro, remainingSeconds, startTimer, startGpsWatch, requestWakeLock])
+
+  // ── Pause recording ────────────────────────────────────────────────────────
+  const pauseRecording = useCallback(() => {
+    if (watchIdRef.current !== null) {
+      navigator.geolocation.clearWatch(watchIdRef.current)
+      watchIdRef.current = null
+    }
+    if (timerRef.current) {
+      clearInterval(timerRef.current)
+      timerRef.current = null
+    }
+    elapsedAtPauseRef.current = elapsedRef.current
+    releaseWakeLock()
+    setState("paused")
+  }, [releaseWakeLock])
+
+  // ── Resume recording ───────────────────────────────────────────────────────
+  const resumeRecording = useCallback(() => {
+    setState("recording")
+    startTimer()
+    startGpsWatch()
+    requestWakeLock()
+  }, [startTimer, startGpsWatch, requestWakeLock])
+
+  // ── Stop & compose ─────────────────────────────────────────────────────────
   const stopRecording = useCallback(async () => {
     if (watchIdRef.current !== null) {
       navigator.geolocation.clearWatch(watchIdRef.current)
@@ -60,62 +184,14 @@ export function RecordScreen({ isPro, userId, units = "metric", usedSeconds = 0 
       clearInterval(timerRef.current)
       timerRef.current = null
     }
+    releaseWakeLock()
     setState("processing")
     await saveActivity()
-  }, [points, settings, distance, elapsed])
+  }, [releaseWakeLock]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Keep a stable ref for the auto-stop timer callback
+  const stopRecordingRef = useRef(stopRecording)
   useEffect(() => { stopRecordingRef.current = stopRecording }, [stopRecording])
-
-  const startRecording = useCallback(() => {
-    if (!navigator.geolocation) {
-      setError("Geolocation is not supported by your browser.")
-      return
-    }
-    if (!isPro && remainingSeconds <= 0) {
-      setError("You've used your free recording allowance. Upgrade to Pro for unlimited recordings.")
-      return
-    }
-    setState("recording")
-    startTimeRef.current = Date.now()
-
-    timerRef.current = setInterval(() => {
-      const secs = Math.floor((Date.now() - startTimeRef.current) / 1000)
-      setElapsed(secs)
-      if (!isPro && secs >= remainingSeconds) {
-        stopRecordingRef.current()
-      }
-    }, 1000)
-
-    watchIdRef.current = navigator.geolocation.watchPosition(
-      (pos) => {
-        const { latitude: lat, longitude: lng } = pos.coords
-        const ts = pos.timestamp
-
-        setPoints((prev) => {
-          const next = [...prev, { lat, lng, timestamp: ts }]
-
-          if (prev.length > 0) {
-            const last = prev[prev.length - 1]
-            setDistance((d) => d + haversineDistance(last.lat, last.lng, lat, lng))
-
-            // Compute raw bearing then apply EMA for smoothing
-            const rawBearing = computeBearing(last.lat, last.lng, lat, lng)
-            // Handle wrap-around at 0/360
-            let delta = rawBearing - smoothedBearingRef.current
-            if (delta > 180) delta -= 360
-            if (delta < -180) delta += 360
-            const smoothed = (smoothedBearingRef.current + BEARING_ALPHA * delta + 360) % 360
-            smoothedBearingRef.current = smoothed
-            setBearing(smoothed)
-          }
-
-          return next
-        })
-      },
-      (err) => setError(`GPS error: ${err.message}`),
-      { enableHighAccuracy: true, maximumAge: 2000, timeout: 15000 }
-    )
-  }, [isPro, remainingSeconds])
 
   async function saveActivity() {
     try {
@@ -123,33 +199,38 @@ export function RecordScreen({ isPro, userId, units = "metric", usedSeconds = 0 
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          title: settings?.title || "Andante Walk",
-          gpsTrack: points,
-          durationSec: elapsed,
-          distanceM: distance,
-          startingNote: settings?.startingNote ?? "C4",
-          scale: settings?.scale ?? "major",
-          genre: settings?.genre ?? "classical",
-          instrument: settings?.instrument ?? "piano",
+          title: settingsRef.current?.title || "Andante Walk",
+          gpsTrack: pointsRef.current,
+          durationSec: elapsedRef.current,
+          distanceM: distanceRef.current,
+          startingNote: settingsRef.current?.startingNote ?? "C4",
+          scale: settingsRef.current?.scale ?? "major",
+          genre: settingsRef.current?.genre ?? "classical",
+          instrument: settingsRef.current?.instrument ?? "piano",
         }),
       })
       if (!res.ok) throw new Error("Save failed")
       const { activityId, newlyRevealedChallenge } = await res.json()
-      const dest = newlyRevealedChallenge
+      router.push(newlyRevealedChallenge
         ? `/activity/${activityId}?reveal=${newlyRevealedChallenge}`
-        : `/activity/${activityId}`
-      router.push(dest)
+        : `/activity/${activityId}`)
     } catch {
       setError("Could not save your activity. Please try again.")
       setState("recording")
+      startTimer()
+      startGpsWatch()
+      requestWakeLock()
     }
   }
 
+  // Cleanup on unmount
   useEffect(() => () => {
     if (watchIdRef.current !== null) navigator.geolocation.clearWatch(watchIdRef.current)
     if (timerRef.current) clearInterval(timerRef.current)
-  }, [])
+    releaseWakeLock()
+  }, [releaseWakeLock])
 
+  // ── Screens ────────────────────────────────────────────────────────────────
   if (state === "idle") {
     return (
       <PreRecordSettings
@@ -171,6 +252,8 @@ export function RecordScreen({ isPro, userId, units = "metric", usedSeconds = 0 
 
   const pctUsed = !isPro ? Math.min(1, elapsed / remainingSeconds) : 0
   const minsLeft = Math.max(0, Math.round((remainingSeconds - elapsed) / 60))
+  const isPaused = state === "paused"
+  const canStop = points.length >= 5
 
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)]">
@@ -181,10 +264,18 @@ export function RecordScreen({ isPro, userId, units = "metric", usedSeconds = 0 
             {error}
           </div>
         )}
+        {isPaused && (
+          <div className="absolute inset-0 z-10 bg-ink/40 flex items-center justify-center pointer-events-none">
+            <div className="bg-surface/90 rounded-2xl px-6 py-4 flex items-center gap-3">
+              <Pause size={20} className="text-wave" />
+              <span className="font-semibold text-ink">Paused — silence in composition</span>
+            </div>
+          </div>
+        )}
         <RecordMap points={points} />
       </div>
 
-      {/* Recording HUD */}
+      {/* HUD */}
       <div className="bg-surface border-t border-border px-6 py-5">
         {/* Stats */}
         <div className="flex justify-around mb-6">
@@ -200,7 +291,7 @@ export function RecordScreen({ isPro, userId, units = "metric", usedSeconds = 0 
             <div className="flex items-center justify-center gap-1">
               <Navigation
                 size={20}
-                className="text-wave"
+                className={isPaused ? "text-muted" : "text-wave"}
                 style={{ transform: `rotate(${bearing}deg)`, transition: "transform 0.8s ease-out" }}
               />
               <p className="text-2xl font-bold text-ink">{Math.round(bearing)}°</p>
@@ -222,8 +313,11 @@ export function RecordScreen({ isPro, userId, units = "metric", usedSeconds = 0 
           <div className="mb-4">
             <div className="h-1.5 bg-border rounded-full overflow-hidden mb-1">
               <div
-                className="h-full bg-wave rounded-full transition-all"
-                style={{ width: `${pctUsed * 100}%`, backgroundColor: pctUsed > 0.8 ? "#F97316" : "#14B8A6" }}
+                className="h-full rounded-full transition-all"
+                style={{
+                  width: `${pctUsed * 100}%`,
+                  backgroundColor: pctUsed > 0.8 ? "#F97316" : "#14B8A6"
+                }}
               />
             </div>
             <p className="text-xs text-muted text-center">
@@ -232,17 +326,31 @@ export function RecordScreen({ isPro, userId, units = "metric", usedSeconds = 0 
           </div>
         )}
 
-        {/* Stop button */}
-        <button
-          onClick={stopRecording}
-          disabled={points.length < 5}
-          className="w-full flex items-center justify-center gap-3 bg-wave text-white font-semibold rounded-2xl py-4 recording-pulse hover:bg-wave/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          style={{ WebkitTapHighlightColor: "transparent", touchAction: "manipulation" }}
-        >
-          <Square size={20} fill="white" />
-          {t("hud.stop")}
-        </button>
-        {points.length < 5 && (
+        {/* Controls: Pause/Resume + Stop */}
+        <div className="flex gap-3">
+          {/* Pause / Resume */}
+          <button
+            onClick={isPaused ? resumeRecording : pauseRecording}
+            className="flex items-center justify-center gap-2 border border-wave text-wave font-semibold rounded-2xl py-4 px-5 hover:bg-wave/5 transition-colors"
+            style={{ WebkitTapHighlightColor: "transparent", touchAction: "manipulation" }}
+            aria-label={isPaused ? "Resume recording" : "Pause recording"}
+          >
+            {isPaused ? <Play size={20} /> : <Pause size={20} />}
+          </button>
+
+          {/* Stop & Compose */}
+          <button
+            onClick={stopRecording}
+            disabled={!canStop}
+            className="flex-1 flex items-center justify-center gap-3 bg-wave text-white font-semibold rounded-2xl py-4 hover:bg-wave/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{ WebkitTapHighlightColor: "transparent", touchAction: "manipulation" }}
+          >
+            <Square size={20} fill="white" />
+            {t("hud.stop")}
+          </button>
+        </div>
+
+        {!canStop && (
           <p className="text-xs text-muted text-center mt-2">{t("hud.wait")}</p>
         )}
       </div>
