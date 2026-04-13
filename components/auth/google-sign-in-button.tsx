@@ -24,7 +24,7 @@ export function GoogleSignInButton() {
         await signIn("google", { callbackUrl: "/dashboard" })
       }}
       disabled={loading}
-      className="w-full flex items-center justify-center gap-3 border border-border rounded-xl py-3 px-4 text-sm font-medium text-ink hover:bg-mist transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+      className="w-full flex items-center justify-center gap-3 border border-border rounded-xl py-3 px-4 text-sm font-medium text-ink hover:bg-mist transition-colors disabled:opacity-60 disabled:cursor-not-allowed min-h-[44px]"
     >
       {loading ? (
         <svg className="animate-spin" width="18" height="18" viewBox="0 0 24 24" fill="none">

@@ -104,7 +104,7 @@ export function LeaderboardView({ allTime, weekly, currentUserId, myAllTimeRank,
       <div className="flex gap-1 mb-6 bg-mist rounded-xl p-1">
         <button
           onClick={() => setTab("alltime")}
-          className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-colors ${
+          className={`flex-1 py-3 rounded-lg text-sm font-semibold transition-colors ${
             tab === "alltime" ? "bg-surface text-ink shadow-sm" : "text-muted"
           }`}
         >
@@ -112,7 +112,7 @@ export function LeaderboardView({ allTime, weekly, currentUserId, myAllTimeRank,
         </button>
         <button
           onClick={() => setTab("weekly")}
-          className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-colors ${
+          className={`flex-1 py-3 rounded-lg text-sm font-semibold transition-colors ${
             tab === "weekly" ? "bg-surface text-ink shadow-sm" : "text-muted"
           }`}
         >

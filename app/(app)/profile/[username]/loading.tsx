@@ -8,8 +8,18 @@ export default function ProfileLoading() {
           <div className="flex-1 space-y-2 pt-1">
             <div className="h-5 w-36 bg-border rounded" />
             <div className="h-3.5 w-24 bg-border rounded" />
+            {/* Bio */}
+            <div className="h-3.5 w-48 bg-border rounded" />
           </div>
         </div>
+        {/* Style tags */}
+        <div className="flex gap-2 mt-1">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="h-6 w-16 bg-border rounded-full" />
+          ))}
+        </div>
+        {/* Level progress */}
+        <div className="h-2 w-full bg-border rounded-full mt-3" />
         {/* Stats */}
         <div className="flex gap-6">
           {Array.from({ length: 4 }).map((_, i) => (

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, Component, type ReactNode } from "react"
 import dynamic from "next/dynamic"
 import Link from "next/link"
 import { Map, List, Music2, Timer, Footprints } from "lucide-react"
@@ -8,6 +8,28 @@ import { formatDuration, formatDistance, timeAgo } from "@/lib/utils"
 
 const FeedMap = dynamic(() => import("./feed-map"), { ssr: false })
 const MyActivitiesMap = dynamic(() => import("./my-activities-map"), { ssr: false })
+
+class MapErrorBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+  state = { failed: false }
+  static getDerivedStateFromError() { return { failed: true } }
+  render() {
+    if (this.state.failed) {
+      return (
+        <div className="flex flex-col items-center justify-center h-full gap-3 text-center px-6">
+          <Map size={32} className="text-border" />
+          <p className="text-sm text-muted">Map could not be loaded.</p>
+          <button
+            onClick={() => this.setState({ failed: false })}
+            className="text-wave text-sm font-medium hover:underline"
+          >
+            Try again
+          </button>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
 
 interface Activity {
   id: string
@@ -54,7 +76,7 @@ export function MapFeedView({ activities, currentUserId, units = "metric", myAct
       <div className="flex items-center gap-1 px-4 py-3 border-b border-border bg-surface">
         <button
           onClick={() => setView("map")}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+          className={`flex items-center gap-1.5 px-3 py-2.5 rounded-full text-sm font-medium transition-colors min-h-[44px] ${
             view === "map" ? "bg-wave text-white" : "text-muted hover:text-ink"
           }`}
         >
@@ -63,7 +85,7 @@ export function MapFeedView({ activities, currentUserId, units = "metric", myAct
         {currentUserId && (
           <button
             onClick={() => setView("mine")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+            className={`flex items-center gap-1.5 px-3 py-2.5 rounded-full text-sm font-medium transition-colors min-h-[44px] ${
               view === "mine" ? "bg-wave text-white" : "text-muted hover:text-ink"
             }`}
           >
@@ -72,7 +94,7 @@ export function MapFeedView({ activities, currentUserId, units = "metric", myAct
         )}
         <button
           onClick={() => setView("list")}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+          className={`flex items-center gap-1.5 px-3 py-2.5 rounded-full text-sm font-medium transition-colors min-h-[44px] ${
             view === "list" ? "bg-wave text-white" : "text-muted hover:text-ink"
           }`}
         >
@@ -92,7 +114,9 @@ export function MapFeedView({ activities, currentUserId, units = "metric", myAct
       {/* Discover map */}
       {view === "map" && (
         <div className="flex-1">
-          <FeedMap activities={activities} />
+          <MapErrorBoundary>
+            <FeedMap activities={activities} />
+          </MapErrorBoundary>
         </div>
       )}
 
@@ -108,7 +132,9 @@ export function MapFeedView({ activities, currentUserId, units = "metric", myAct
               </Link>
             </div>
           ) : (
-            <MyActivitiesMap activities={myActivities} />
+            <MapErrorBoundary>
+              <MyActivitiesMap activities={myActivities} />
+            </MapErrorBoundary>
           )}
         </div>
       )}

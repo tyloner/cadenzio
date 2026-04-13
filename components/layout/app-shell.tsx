@@ -92,7 +92,7 @@ export function AppShell({ children, lang: _lang }: { children: React.ReactNode;
           <Link href="/challenges" prefetch={false} className="p-2 text-muted hover:text-ink transition-colors" aria-label="Challenges">
             <Award size={20} />
           </Link>
-          <Link href="/search" prefetch={false} className="p-2 text-muted hover:text-ink transition-colors">
+          <Link href="/search" prefetch={false} className="p-2 text-muted hover:text-ink transition-colors" aria-label="Search">
             <Search size={20} />
           </Link>
           <NotificationBell />
@@ -112,6 +112,7 @@ export function AppShell({ children, lang: _lang }: { children: React.ReactNode;
               <Link
                 key={href}
                 href={href}
+                aria-label={isRecord ? t(labelKey) : undefined}
                 className={cn(
                   "flex flex-col items-center gap-0.5 px-3",
                   isRecord && "relative -top-4 z-50"

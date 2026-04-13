@@ -47,11 +47,15 @@ export default async function LoginPage({
           {/* Client-side sign-in — avoids Safari server-action OAuth redirect issues */}
           <GoogleSignInButton />
 
-          <div className="mt-3 flex items-center gap-3 border border-border rounded-xl py-3 px-4 opacity-40 cursor-not-allowed select-none">
+          <button
+            disabled
+            aria-disabled="true"
+            className="mt-3 w-full flex items-center gap-3 border border-border rounded-xl py-3 px-4 opacity-40 cursor-not-allowed select-none min-h-[44px]"
+          >
             <AppleIcon />
             <span className="text-sm font-medium text-ink">Continue with Apple</span>
             <span className="ml-auto text-xs text-muted">Coming soon</span>
-          </div>
+          </button>
 
           <p className="text-xs text-muted text-center mt-8 leading-relaxed">
             By continuing you agree to our{" "}

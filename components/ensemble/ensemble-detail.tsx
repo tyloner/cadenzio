@@ -148,7 +148,7 @@ export function EnsembleDetail({ ensemble, currentUserId, isPro, hasFreeTrial, a
               {isOwner && m.userId !== currentUserId && (
                 <button
                   onClick={() => removeMember(m.userId)}
-                  className="text-muted hover:text-red-500 transition-colors flex-shrink-0"
+                  className="text-muted hover:text-red-500 transition-colors flex-shrink-0 p-2.5 -mr-1.5"
                 >
                   <Trash2 size={14} />
                 </button>
@@ -156,7 +156,7 @@ export function EnsembleDetail({ ensemble, currentUserId, isPro, hasFreeTrial, a
               {!isOwner && m.userId === currentUserId && (
                 <button
                   onClick={() => removeMember(m.userId)}
-                  className="text-xs text-muted hover:text-red-500 transition-colors"
+                  className="text-xs text-muted hover:text-red-500 transition-colors px-3 py-2.5 -mr-1.5"
                 >
                   Leave
                 </button>

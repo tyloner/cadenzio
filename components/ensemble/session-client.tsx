@@ -366,7 +366,7 @@ export function EnsembleSessionClient({
         {/* Wrap Up confirmation modal */}
         {confirmWrap && (
           <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 px-4 pb-8">
-            <div className="bg-surface rounded-2xl p-6 w-full max-w-sm shadow-xl">
+            <div className="bg-surface rounded-2xl p-6 pb-safe w-full max-w-sm shadow-xl">
               <h2 className="text-base font-bold text-ink mb-1">End session for everyone?</h2>
               <p className="text-sm text-muted mb-5">
                 Whatever each member has recorded so far will be included in the composition. Members still walking will be wrapped up automatically.
@@ -394,7 +394,7 @@ export function EnsembleSessionClient({
         {/* Exit Session confirmation modal */}
         {confirmExit && (
           <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 px-4 pb-8">
-            <div className="bg-surface rounded-2xl p-6 w-full max-w-sm shadow-xl">
+            <div className="bg-surface rounded-2xl p-6 pb-safe w-full max-w-sm shadow-xl">
               <h2 className="text-base font-bold text-ink mb-1">Leave the session?</h2>
               <p className="text-sm text-muted mb-5">
                 Your walk so far will be saved and included in the composition. The session continues for everyone else.

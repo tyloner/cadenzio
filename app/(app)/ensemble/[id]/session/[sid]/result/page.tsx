@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { redirect, notFound } from "next/navigation"
 import { CompositionPlayer } from "@/components/composition-player"
+import { ResultPoll } from "@/components/ensemble/result-poll"
 import { Users, Share2 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
@@ -78,6 +79,7 @@ export default async function EnsembleResultPage({
         />
       ) : (
         <div className="bg-mist rounded-xl p-6 text-center text-muted text-sm mb-6">
+          <ResultPoll />
           Composition is being processed…
         </div>
       )}

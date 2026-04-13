@@ -114,7 +114,7 @@ export function PreRecordSettings({ isPro, onStart }: Props) {
             <button
               key={n}
               onClick={() => setNote(n)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
+              className={`px-3 py-2.5 rounded-lg text-sm font-medium border transition-colors min-h-[44px] ${
                 note === n
                   ? "bg-wave text-white border-wave"
                   : "bg-surface text-ink border-border hover:border-wave/50"

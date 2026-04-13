@@ -32,7 +32,7 @@ export function EnsembleCreateForm() {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 text-sm font-semibold text-white bg-wave rounded-xl px-3 py-2"
+        className="flex items-center gap-1.5 text-sm font-semibold text-white bg-wave rounded-xl px-4 py-3 min-h-[44px]"
       >
         <Plus size={16} /> New
       </button>

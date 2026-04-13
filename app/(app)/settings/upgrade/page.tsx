@@ -46,7 +46,7 @@ export default async function UpgradePage() {
   return (
     <div className="px-4 py-6 max-w-lg mx-auto">
       {/* Back */}
-      <Link href="/settings" className="flex items-center gap-1 text-sm text-muted mb-6 hover:text-ink transition-colors">
+      <Link href="/settings" className="flex items-center gap-1 text-sm text-muted mb-6 hover:text-ink transition-colors min-h-[44px]">
         <ChevronLeft size={16} />
         Back to settings
       </Link>
