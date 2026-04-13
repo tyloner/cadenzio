@@ -1,4 +1,5 @@
 import NextAuth from "next-auth"
+import { randomBytes } from "crypto"
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import Google from "next-auth/providers/google"
 import Credentials from "next-auth/providers/credentials"
@@ -51,7 +52,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (!user.id) return
       try {
         const base = (user.email?.split("@")[0] ?? "user").replace(/[^a-z0-9]/gi, "").toLowerCase()
-        const username = `${base}_${Math.random().toString(36).slice(2, 6)}`
+        const username = `${base}_${randomBytes(4).toString("hex")}`
         await db.profile.create({ data: { userId: user.id, username } })
         await db.subscription.create({
           data: {

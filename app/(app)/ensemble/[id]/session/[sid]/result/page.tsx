@@ -29,7 +29,12 @@ export default async function EnsembleResultPage({
     },
   })
 
-  if (!ensSession || ensSession.status !== "COMPLETED") notFound()
+  if (!ensSession) notFound()
+  // CANCELLED sessions go back to the ensemble page
+  if (ensSession.status === "CANCELLED") redirect(`/ensemble/${ensembleId}`)
+  // COMPLETING is the short window between all-submitted and DB write completing — redirect to
+  // the session page which polls and will redirect here once status becomes COMPLETED.
+  if (ensSession.status !== "COMPLETED") redirect(`/ensemble/${ensembleId}/session/${sessionId}`)
 
   const composition = ensSession.activity?.composition
   const midiEvents = (composition?.midiEvents as {

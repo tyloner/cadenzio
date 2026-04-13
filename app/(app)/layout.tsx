@@ -11,12 +11,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const session = await auth()
   if (!session?.user?.id) redirect("/login")
 
-  let profile = await db.profile.findUnique({
-    where: { userId: session.user.id },
-    select: { onboardingDone: true, language: true },
-  })
-
-  // Resolve language: DB preference > lang cookie > geo detection
+  // Resolve language early from cookie/geo — usable even if DB is slow
   const cookieStore = await cookies()
   const headerStore = await headers()
   const cookieLang = cookieStore.get(LANG_COOKIE)?.value as Lang | undefined
@@ -24,26 +19,38 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     headerStore.get("x-vercel-ip-country"),
     headerStore.get("accept-language")
   )
-  const lang: Lang = (profile?.language as Lang) ?? cookieLang ?? geoLang
 
-  // Safety net: create profile if missing (e.g. user signed up before events.createUser was in place)
-  if (!profile) {
-    const user = await db.user.findUnique({ where: { id: session.user.id }, select: { email: true } })
-    if (user) {
-      const base = (user.email?.split("@")[0] ?? "user").replace(/[^a-z0-9]/gi, "").toLowerCase()
-      const username = `${base}_${Math.random().toString(36).slice(2, 6)}`
-      try {
-        profile = await db.profile.create({ data: { userId: session.user.id, username }, select: { onboardingDone: true, language: true } })
-        const subExists = await db.subscription.findUnique({ where: { userId: session.user.id } })
-        if (!subExists) {
-          await db.subscription.create({
-            data: { userId: session.user.id, stripeCustomerId: `pending_${session.user.id}`, tier: "FREE", status: "active" },
-          })
-        }
-      } catch { /* profile created by concurrent request */ }
-      profile = await db.profile.findUnique({ where: { userId: session.user.id }, select: { onboardingDone: true, language: true } })
+  let profile: { onboardingDone: boolean; language: string } | null = null
+  try {
+    profile = await db.profile.findUnique({
+      where: { userId: session.user.id },
+      select: { onboardingDone: true, language: true },
+    })
+
+    // Safety net: create profile if missing (e.g. user signed up before events.createUser was in place)
+    if (!profile) {
+      const user = await db.user.findUnique({ where: { id: session.user.id }, select: { email: true } })
+      if (user) {
+        const base = (user.email?.split("@")[0] ?? "user").replace(/[^a-z0-9]/gi, "").toLowerCase()
+        const username = `${base}_${Math.random().toString(36).slice(2, 6)}`
+        try {
+          profile = await db.profile.create({ data: { userId: session.user.id, username }, select: { onboardingDone: true, language: true } })
+          const subExists = await db.subscription.findUnique({ where: { userId: session.user.id } })
+          if (!subExists) {
+            await db.subscription.create({
+              data: { userId: session.user.id, stripeCustomerId: `pending_${session.user.id}`, tier: "FREE", status: "active" },
+            })
+          }
+        } catch { /* profile created by concurrent request */ }
+        profile = await db.profile.findUnique({ where: { userId: session.user.id }, select: { onboardingDone: true, language: true } })
+      }
     }
+  } catch {
+    // DB unavailable — continue with defaults so the shell still renders
   }
+
+  // Resolve language: DB preference > lang cookie > geo detection
+  const lang: Lang = (profile?.language as Lang) ?? cookieLang ?? geoLang
 
   return (
     <LanguageProvider lang={lang}>

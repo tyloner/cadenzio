@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
-import { MapPin, Users, Play, CheckCircle, Clock, Loader2, Radio } from "lucide-react"
+import { MapPin, Users, Play, CheckCircle, Clock, Loader2, Radio, LogOut, Square, X } from "lucide-react"
 import { INSTRUMENT_CONFIG, type InstrumentName, type ScaleName } from "@/lib/music-engine/scales"
 
 const INSTRUMENTS: InstrumentName[] = ["piano", "violin", "synth", "drums"]
@@ -36,6 +36,9 @@ interface Props {
 
 type GpsPoint = { lat: number; lng: number; timestamp: number }
 
+// localStorage key for GPS backup (survives brief connectivity loss / app backgrounding)
+const gpsStorageKey = (sessionId: string) => `cadenz-ensemble-gps-${sessionId}`
+
 export function EnsembleSessionClient({
   sessionId,
   ensembleId,
@@ -60,19 +63,49 @@ export function EnsembleSessionClient({
   const [submitting, setSubmitting] = useState(false)
   const [startError, setStartError] = useState("")
 
+  // Wrap / Exit / Leave-lobby dialogs
+  const [confirmWrap, setConfirmWrap] = useState(false)
+  const [wrapping, setWrapping] = useState(false)
+  const [confirmExit, setConfirmExit] = useState(false)
+  const [exiting, setExiting] = useState(false)
+  const [confirmCancel, setConfirmCancel] = useState(false)
+  const [cancelling, setCancelling] = useState(false)
+
   const gpsRef = useRef<GpsPoint[]>([])
   const watchRef = useRef<number | null>(null)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
   // Refs for stale-closure-safe access inside poll/timer intervals
   const recordingRef = useRef(false)
   const submittedRef = useRef(false)
-  // Stable ref to submitTrack so the countdown interval always calls the latest version
+  const instrumentRef = useRef<InstrumentName>("piano")
+  const scaleRef = useRef<ScaleName>((scales[0] ?? "major") as ScaleName)
+  const startingNoteRef = useRef("C4")
+
+  // Stable ref to submitTrack / leaveSession so intervals always call the latest version
   const submitTrackRef = useRef<() => Promise<void>>(async () => {})
+  const leaveSessionRef = useRef<(reason: "exit" | "wrap-auto") => Promise<void>>(async () => {})
 
   // Keep refs in sync with state
   useEffect(() => { recordingRef.current = recording }, [recording])
   useEffect(() => { submittedRef.current = submitted }, [submitted])
+  useEffect(() => { instrumentRef.current = instrument }, [instrument])
+  useEffect(() => { scaleRef.current = scale }, [scale])
+  useEffect(() => { startingNoteRef.current = startingNote }, [startingNote])
+
+  // Restore any GPS points saved to localStorage (connectivity-loss resilience)
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(gpsStorageKey(sessionId))
+      if (stored) {
+        const pts: GpsPoint[] = JSON.parse(stored)
+        if (Array.isArray(pts) && pts.length > 0) {
+          gpsRef.current = pts
+        }
+      }
+    } catch { /* ignore */ }
+  }, [sessionId])
 
   // Push location to server — stable ref, never changes
   const pushLocation = useCallback((lat: number, lng: number) => {
@@ -83,7 +116,7 @@ export function EnsembleSessionClient({
     }).catch(() => { /* best-effort */ })
   }, [ensembleId, sessionId])
 
-  // Poll lobby state every 3s — uses refs to avoid stale closures
+  // Poll lobby state every 3s
   const poll = useCallback(async () => {
     try {
       const res = await fetch(`/api/ensemble/${ensembleId}/session/${sessionId}/lobby`)
@@ -92,13 +125,24 @@ export function EnsembleSessionClient({
       setLobby(data)
       setStatus(data.session.status)
 
-      // If session just became ACTIVE, start recording
+      // If session became ACTIVE, start recording
       if (data.session.status === "ACTIVE" && !recordingRef.current && !submittedRef.current) {
         startRecording()
       }
+
+      // If host triggered wrap-up, auto-submit remaining members' progress
+      if (data.session.status === "COMPLETING" && !submittedRef.current) {
+        await leaveSessionRef.current("wrap-auto")
+      }
+
       // If completed, redirect to result
       if (data.session.status === "COMPLETED") {
         router.push(`/ensemble/${ensembleId}/session/${sessionId}/result`)
+      }
+
+      // If cancelled, redirect to ensemble page
+      if (data.session.status === "CANCELLED") {
+        router.push(`/ensemble/${ensembleId}`)
       }
     } catch { /* ignore */ }
   }, [ensembleId, sessionId]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -109,30 +153,31 @@ export function EnsembleSessionClient({
     return () => { if (pollRef.current) clearInterval(pollRef.current) }
   }, [poll])
 
-  // Single geolocation watch — only mount once, use ref for recording state
+  // Single geolocation watch — uses recordingRef to avoid stale closures
   useEffect(() => {
     if (!navigator.geolocation) return
-    // Clear any previous watch before setting a new one
     if (watchRef.current !== null) navigator.geolocation.clearWatch(watchRef.current)
     watchRef.current = navigator.geolocation.watchPosition(
       (pos) => {
         const { latitude: lat, longitude: lng } = pos.coords
         pushLocation(lat, lng)
         if (recordingRef.current) {
-          gpsRef.current.push({ lat, lng, timestamp: Date.now() })
+          const pt = { lat, lng, timestamp: Date.now() }
+          gpsRef.current.push(pt)
+          // Persist to localStorage every 5 points (connectivity-loss resilience)
+          if (gpsRef.current.length % 5 === 0) {
+            try { localStorage.setItem(gpsStorageKey(sessionId), JSON.stringify(gpsRef.current)) } catch { /* quota full */ }
+          }
         }
       },
       () => { /* ignore errors */ },
       { enableHighAccuracy: true, maximumAge: 2000 }
     )
     return () => { if (watchRef.current !== null) navigator.geolocation.clearWatch(watchRef.current) }
-  }, [pushLocation]) // removed `recording` — now uses recordingRef instead
+  }, [pushLocation, sessionId])
 
   function startRecording() {
-    // Guard: if already recording (ref is source of truth), do nothing
-    // This prevents the poll re-triggering startRecording before the useEffect fires
     if (recordingRef.current || timerRef.current) return
-    // Update ref synchronously so the next poll cycle sees it immediately
     recordingRef.current = true
     setRecording(true)
     setTimeLeft(MAX_SECONDS)
@@ -140,7 +185,6 @@ export function EnsembleSessionClient({
     timerRef.current = setInterval(() => {
       setTimeLeft((t) => {
         if (t <= 1) {
-          // Call via ref so we always get the latest submitTrack closure
           submitTrackRef.current()
           return 0
         }
@@ -154,9 +198,18 @@ export function EnsembleSessionClient({
     const res = await fetch(`/api/ensemble/${ensembleId}/session/${sessionId}/start`, { method: "POST" })
     const data = await res.json()
     if (!res.ok) { setStartError(data.error ?? "Failed"); return }
-    // Poll will pick up ACTIVE status
   }
 
+  // Cancel session (host, in lobby)
+  async function cancelSession() {
+    setCancelling(true)
+    await fetch(`/api/ensemble/${ensembleId}/session/${sessionId}/start`, {
+      method: "DELETE",
+    }).catch(() => {})
+    router.push(`/ensemble/${ensembleId}`)
+  }
+
+  // ── Submit track (normal time-up or early) ────────────────────────────────
   submitTrackRef.current = submitTrack
   async function submitTrack() {
     if (submittedRef.current || submitting) return
@@ -170,19 +223,107 @@ export function EnsembleSessionClient({
     const res = await fetch(`/api/ensemble/${ensembleId}/session/${sessionId}/submit`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ gpsPoints: points, instrument, scale, startingNote, genre }),
+      body: JSON.stringify({
+        gpsPoints: points,
+        instrument: instrumentRef.current,
+        scale: scaleRef.current,
+        startingNote: startingNoteRef.current,
+        genre,
+      }),
     })
 
     setSubmitting(false)
     if (res.ok) {
       submittedRef.current = true
       setSubmitted(true)
+      try { localStorage.removeItem(gpsStorageKey(sessionId)) } catch { /* ignore */ }
       const data = await res.json()
       if (data.allSubmitted) {
         router.push(`/ensemble/${ensembleId}/session/${sessionId}/result`)
       }
     }
   }
+
+  // ── Leave session (exit mid-recording or auto-submit on wrap) ─────────────
+  leaveSessionRef.current = leaveSession
+  async function leaveSession(reason: "exit" | "wrap-auto") {
+    if (submittedRef.current) return
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
+    recordingRef.current = false
+    setRecording(false)
+    submittedRef.current = true // mark early so poll doesn't re-enter
+
+    const points = gpsRef.current
+    try {
+      await fetch(`/api/ensemble/${ensembleId}/session/${sessionId}/leave`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          gpsPoints: points,
+          instrument: instrumentRef.current,
+          scale: scaleRef.current,
+          startingNote: startingNoteRef.current,
+          genre: "classical",
+        }),
+      })
+    } catch { /* best-effort */ }
+
+    try { localStorage.removeItem(gpsStorageKey(sessionId)) } catch { /* ignore */ }
+
+    if (reason === "exit") {
+      router.push(`/ensemble/${ensembleId}`)
+    }
+    // For "wrap-auto", the poll will detect COMPLETED and redirect to result
+  }
+
+  // ── Wrap up session (host) ─────────────────────────────────────────────────
+  async function wrapSession() {
+    setWrapping(true)
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
+    recordingRef.current = false
+    setRecording(false)
+    submittedRef.current = true
+
+    const points = gpsRef.current
+    try {
+      await fetch(`/api/ensemble/${ensembleId}/session/${sessionId}/wrap`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          gpsPoints: points,
+          instrument: instrumentRef.current,
+          scale: scaleRef.current,
+          startingNote: startingNoteRef.current,
+          genre: "classical",
+        }),
+      })
+    } catch { /* best-effort */ }
+
+    try { localStorage.removeItem(gpsStorageKey(sessionId)) } catch { /* ignore */ }
+    router.push(`/ensemble/${ensembleId}/session/${sessionId}/result`)
+  }
+
+  // Submit GPS data best-effort when user navigates away / backgrounds app
+  useEffect(() => {
+    function handleVisibilityChange() {
+      if (document.visibilityState === "hidden" && recordingRef.current && !submittedRef.current) {
+        // navigator.sendBeacon is the only reliable method when page is unloading
+        const payload = JSON.stringify({
+          gpsPoints: gpsRef.current,
+          instrument: instrumentRef.current,
+          scale: scaleRef.current,
+          startingNote: startingNoteRef.current,
+          genre: "classical",
+        })
+        navigator.sendBeacon?.(
+          `/api/ensemble/${ensembleId}/session/${sessionId}/leave`,
+          new Blob([payload], { type: "application/json" })
+        )
+      }
+    }
+    document.addEventListener("visibilitychange", handleVisibilityChange)
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange)
+  }, [ensembleId, sessionId])
 
   useEffect(() => {
     return () => {
@@ -195,9 +336,65 @@ export function EnsembleSessionClient({
   const fmt = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}`
 
   // ── ACTIVE / recording UI ──────────────────────────────────────────────────
-  if (status === "ACTIVE") {
+  if (status === "ACTIVE" || status === "COMPLETING") {
     return (
       <div className="px-4 py-6 flex flex-col min-h-[80vh]">
+        {/* Wrap Up confirmation modal */}
+        {confirmWrap && (
+          <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 px-4 pb-8">
+            <div className="bg-surface rounded-2xl p-6 w-full max-w-sm shadow-xl">
+              <h2 className="text-base font-bold text-ink mb-1">End session for everyone?</h2>
+              <p className="text-sm text-muted mb-5">
+                Whatever each member has recorded so far will be included in the composition. Members still walking will be wrapped up automatically.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setConfirmWrap(false)}
+                  className="flex-1 py-3 rounded-xl bg-mist text-ink font-semibold text-sm"
+                >
+                  Keep recording
+                </button>
+                <button
+                  onClick={wrapSession}
+                  disabled={wrapping}
+                  className="flex-1 py-3 rounded-xl bg-beat text-white font-semibold text-sm disabled:opacity-40 flex items-center justify-center gap-2"
+                >
+                  {wrapping ? <Loader2 size={16} className="animate-spin" /> : <Square size={16} />}
+                  {wrapping ? "Ending…" : "End session"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Exit Session confirmation modal */}
+        {confirmExit && (
+          <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 px-4 pb-8">
+            <div className="bg-surface rounded-2xl p-6 w-full max-w-sm shadow-xl">
+              <h2 className="text-base font-bold text-ink mb-1">Leave the session?</h2>
+              <p className="text-sm text-muted mb-5">
+                Your walk so far will be saved and included in the composition. The session continues for everyone else.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setConfirmExit(false)}
+                  className="flex-1 py-3 rounded-xl bg-mist text-ink font-semibold text-sm"
+                >
+                  Keep walking
+                </button>
+                <button
+                  onClick={async () => { setExiting(true); await leaveSession("exit") }}
+                  disabled={exiting}
+                  className="flex-1 py-3 rounded-xl bg-red-500 text-white font-semibold text-sm disabled:opacity-40 flex items-center justify-center gap-2"
+                >
+                  {exiting ? <Loader2 size={16} className="animate-spin" /> : <LogOut size={16} />}
+                  {exiting ? "Leaving…" : "Leave"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-xl font-bold text-ink flex items-center gap-2">
             <Radio size={18} className="text-red-500 animate-pulse" /> Recording
@@ -247,13 +444,34 @@ export function EnsembleSessionClient({
           </div>
         </div>
 
+        {/* Action buttons */}
         {!submitted && !submitting && (
-          <button
-            onClick={submitTrack}
-            className="mt-auto w-full bg-wave text-white rounded-xl py-4 font-semibold flex items-center justify-center gap-2"
-          >
-            <CheckCircle size={18} /> Submit My Track Early
-          </button>
+          <div className="mt-auto flex flex-col gap-3">
+            <button
+              onClick={submitTrack}
+              className="w-full bg-wave text-white rounded-xl py-4 font-semibold flex items-center justify-center gap-2"
+            >
+              <CheckCircle size={18} /> Submit My Track Early
+            </button>
+            <div className="flex gap-3">
+              {isHost && (
+                <button
+                  onClick={() => setConfirmWrap(true)}
+                  className="flex-1 bg-beat/10 text-beat rounded-xl py-3 font-semibold text-sm flex items-center justify-center gap-2"
+                >
+                  <Square size={16} /> Wrap Up Session
+                </button>
+              )}
+              {!isHost && (
+                <button
+                  onClick={() => setConfirmExit(true)}
+                  className="flex-1 bg-red-50 text-red-500 rounded-xl py-3 font-semibold text-sm flex items-center justify-center gap-2"
+                >
+                  <LogOut size={16} /> Exit Session
+                </button>
+              )}
+            </div>
+          </div>
         )}
         {submitting && (
           <div className="mt-auto flex items-center justify-center gap-2 text-muted py-4">
@@ -261,8 +479,19 @@ export function EnsembleSessionClient({
           </div>
         )}
         {submitted && (
-          <div className="mt-auto flex items-center justify-center gap-2 text-wave py-4 font-semibold">
-            <CheckCircle size={18} /> Submitted — waiting for others…
+          <div className="mt-auto flex flex-col gap-3">
+            <div className="flex items-center justify-center gap-2 text-wave py-4 font-semibold">
+              <CheckCircle size={18} /> Submitted — waiting for others…
+            </div>
+            {isHost && (
+              <button
+                onClick={() => setConfirmWrap(true)}
+                disabled={wrapping}
+                className="w-full bg-beat/10 text-beat rounded-xl py-3 font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-40"
+              >
+                <Square size={16} /> Wrap Up Session
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -272,6 +501,34 @@ export function EnsembleSessionClient({
   // ── LOBBY UI ──────────────────────────────────────────────────────────────
   return (
     <div className="px-4 py-6">
+      {/* Cancel session confirmation modal (host) */}
+      {confirmCancel && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 px-4 pb-8">
+          <div className="bg-surface rounded-2xl p-6 w-full max-w-sm shadow-xl">
+            <h2 className="text-base font-bold text-ink mb-1">Cancel this session?</h2>
+            <p className="text-sm text-muted mb-5">
+              The session will be cancelled and members will be sent back to the ensemble page.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmCancel(false)}
+                className="flex-1 py-3 rounded-xl bg-mist text-ink font-semibold text-sm"
+              >
+                Keep waiting
+              </button>
+              <button
+                onClick={cancelSession}
+                disabled={cancelling}
+                className="flex-1 py-3 rounded-xl bg-red-500 text-white font-semibold text-sm disabled:opacity-40 flex items-center justify-center gap-2"
+              >
+                {cancelling ? <Loader2 size={16} className="animate-spin" /> : <X size={16} />}
+                {cancelling ? "Cancelling…" : "Cancel session"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <h1 className="text-xl font-bold text-ink flex items-center gap-2 mb-1">
         <Users size={18} className="text-wave" /> Lobby
       </h1>
@@ -371,9 +628,9 @@ export function EnsembleSessionClient({
         Sessions are capped at 2 minutes
       </div>
 
-      {/* Start button (host only) */}
+      {/* Host controls */}
       {isHost && (
-        <div>
+        <div className="flex flex-col gap-3">
           <button
             onClick={triggerStart}
             disabled={!lobby?.proximityOk}
@@ -381,17 +638,33 @@ export function EnsembleSessionClient({
           >
             <Play size={18} /> Start Walk
           </button>
-          {startError && <p className="text-xs text-red-500 text-center mt-2">{startError}</p>}
+          {startError && <p className="text-xs text-red-500 text-center">{startError}</p>}
           {!lobby?.proximityOk && (
-            <p className="text-xs text-muted text-center mt-2">
+            <p className="text-xs text-muted text-center">
               At least 2 members must be within 50m to start
             </p>
           )}
+          <button
+            onClick={() => setConfirmCancel(true)}
+            className="w-full flex items-center justify-center gap-2 bg-mist text-muted rounded-xl py-3 font-semibold text-sm"
+          >
+            <X size={16} /> Cancel Session
+          </button>
         </div>
       )}
+
+      {/* Non-host: waiting message + leave lobby */}
       {!isHost && (
-        <div className="text-center text-sm text-muted py-4">
-          Waiting for the host to start…
+        <div className="flex flex-col gap-3">
+          <div className="text-center text-sm text-muted py-2">
+            Waiting for the host to start…
+          </div>
+          <button
+            onClick={() => router.push(`/ensemble/${ensembleId}`)}
+            className="w-full flex items-center justify-center gap-2 bg-mist text-muted rounded-xl py-3 font-semibold text-sm"
+          >
+            <LogOut size={16} /> Leave Lobby
+          </button>
         </div>
       )}
     </div>

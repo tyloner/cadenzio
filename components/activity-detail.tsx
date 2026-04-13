@@ -226,17 +226,26 @@ export function ActivityDetail({ activity, currentUserId, isLiked: initialLiked,
         </div>
 
         {/* Composition player */}
-        {activity.composition && (
-          <CompositionPlayer
-            midiEvents={(activity.composition.midiEvents as { note: number; duration: string; time: number; velocity: number; track: "lead" | "rhythm" | "pad" }[]) ?? []}
-            bpmAvg={activity.composition.bpmAvg}
-            genre={activity.composition.genre}
-            instrument={activity.composition.instrument}
-            startingNote={activity.composition.startingNote}
-            scale={activity.composition.scale}
-            onProgress={setMapProgress}
-          />
-        )}
+        {activity.composition && (() => {
+          const midiEvs = (activity.composition!.midiEvents as { note: number; duration: string; time: number; velocity: number; track: "lead" | "rhythm" | "pad" }[]) ?? []
+          if (midiEvs.length === 0) return (
+            <div className="bg-mist rounded-xl p-4 mb-6 flex items-center gap-3 text-sm text-muted">
+              <Music2 size={18} className="flex-shrink-0" />
+              Audio composition unavailable for this recording.
+            </div>
+          )
+          return (
+            <CompositionPlayer
+              midiEvents={midiEvs}
+              bpmAvg={activity.composition!.bpmAvg}
+              genre={activity.composition!.genre}
+              instrument={activity.composition!.instrument}
+              startingNote={activity.composition!.startingNote}
+              scale={activity.composition!.scale}
+              onProgress={setMapProgress}
+            />
+          )
+        })()}
 
         {/* Actions row */}
         <div className="flex items-center gap-4 pt-4 border-t border-border">

@@ -83,13 +83,16 @@ export function AppShell({ children, lang: _lang }: { children: React.ReactNode;
           <Image src="/assets/logo.svg" alt="Cadenzio" width={100} height={28} priority />
         </Link>
         <div className="flex items-center gap-1">
-          <Link href="/hall" className="p-2 text-muted hover:text-ink transition-colors" aria-label="Hall of the Great">
+          {/* prefetch={false}: these links are always in viewport so Next.js would eagerly prefetch
+              them. A cold-start failure during that background prefetch can poison the router cache
+              for the session — disabling lets the user's actual tap fetch fresh. */}
+          <Link href="/hall" prefetch={false} className="p-2 text-muted hover:text-ink transition-colors" aria-label="Hall of the Great">
             <Trophy size={20} />
           </Link>
-          <Link href="/challenges" className="p-2 text-muted hover:text-ink transition-colors" aria-label="Challenges">
+          <Link href="/challenges" prefetch={false} className="p-2 text-muted hover:text-ink transition-colors" aria-label="Challenges">
             <Award size={20} />
           </Link>
-          <Link href="/search" className="p-2 text-muted hover:text-ink transition-colors">
+          <Link href="/search" prefetch={false} className="p-2 text-muted hover:text-ink transition-colors">
             <Search size={20} />
           </Link>
           <NotificationBell />

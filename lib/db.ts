@@ -10,4 +10,5 @@ export const db =
     log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
   })
 
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = db
+// Always cache — prevents creating new connections on every warm Vercel invocation
+globalForPrisma.prisma = globalForPrisma.prisma ?? db

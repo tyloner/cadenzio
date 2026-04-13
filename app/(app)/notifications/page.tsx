@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
-import { notFound } from "next/navigation"
+import { redirect } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
 import { Heart, MessageCircle, UserPlus, Bell, Users, Music2 } from "lucide-react"
@@ -27,7 +27,7 @@ const TYPE_LABEL = {
 
 export default async function NotificationsPage() {
   const session = await auth()
-  if (!session?.user?.id) notFound()
+  if (!session?.user?.id) redirect("/login")
 
   const notifications = await db.notification.findMany({
     where: { userId: session.user.id },
