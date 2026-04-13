@@ -4,6 +4,7 @@ import "./globals.css"
 import { Providers } from "@/components/layout/providers"
 import { GdprBanner } from "@/components/layout/gdpr-banner"
 import { SwRegister } from "@/components/layout/sw-register"
+import { PwaInstallBanner } from "@/components/layout/pwa-install-banner"
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] })
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] })
@@ -47,6 +48,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {children}
           <GdprBanner />
           <SwRegister />
+          <PwaInstallBanner />
         </Providers>
       </body>
     </html>

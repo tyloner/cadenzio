@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
 import { Trophy, Crown, Medal } from "lucide-react"
@@ -81,8 +82,19 @@ function LeaderboardRow({ entry, rank, currentUserId, units }: {
 }
 
 export function LeaderboardView({ allTime, weekly, currentUserId, myAllTimeRank, myWeeklyRank, myProfile, myWeeklyCount, myWeeklyDistance }: Props) {
-  const [tab, setTab] = useState<"alltime" | "weekly">("alltime")
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const initialTab = searchParams.get("tab") === "weekly" ? "weekly" : "alltime"
+  const [tab, setTab] = useState<"alltime" | "weekly">(initialTab)
   const units = "metric"
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (tab === "alltime") params.delete("tab")
+    else params.set("tab", tab)
+    const qs = params.toString()
+    router.replace(qs ? `/hall?${qs}` : "/hall", { scroll: false })
+  }, [tab]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const entries = tab === "alltime" ? allTime : weekly
   const myRank = tab === "alltime" ? myAllTimeRank : myWeeklyRank

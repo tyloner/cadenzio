@@ -8,12 +8,20 @@ export function NotificationBell() {
   const [unread, setUnread] = useState(0)
 
   useEffect(() => {
-    const controller = new AbortController()
-    fetch("/api/notifications", { signal: controller.signal })
-      .then((r) => r.json())
-      .then((d) => setUnread(d.unreadCount ?? 0))
-      .catch(() => {})
-    return () => controller.abort()
+    let controller = new AbortController()
+
+    async function poll() {
+      controller = new AbortController()
+      try {
+        const r = await fetch("/api/notifications", { signal: controller.signal })
+        const d = await r.json()
+        setUnread(d.unreadCount ?? 0)
+      } catch {}
+    }
+
+    poll()
+    const interval = setInterval(poll, 30_000)
+    return () => { controller.abort(); clearInterval(interval) }
   }, [])
 
   return (

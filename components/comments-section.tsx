@@ -47,24 +47,43 @@ export function CommentsSection({ activityId, currentUserId, initialCount }: Pro
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
-    if (!body.trim() || posting) return
+    const trimmed = body.trim()
+    if (!trimmed || posting) return
     setPosting(true)
     setPostError(null)
+    setBody("")
+
+    // Optimistic insert
+    const optimisticId = `opt-${Date.now()}`
+    const optimistic: Comment = {
+      id: optimisticId,
+      body: trimmed,
+      createdAt: new Date().toISOString(),
+      user: { name: null, image: null, profile: null },
+    }
+    setComments((prev) => [...prev, optimistic])
+    setCount((c) => c + 1)
+
     try {
       const res = await fetch(`/api/activities/${activityId}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ body }),
+        body: JSON.stringify({ body: trimmed }),
       })
       if (res.ok) {
         const comment = await res.json()
-        setComments((prev) => [...prev, comment])
-        setCount((c) => c + 1)
-        setBody("")
+        setComments((prev) => prev.map((c) => c.id === optimisticId ? comment : c))
       } else {
+        // Revert optimistic
+        setComments((prev) => prev.filter((c) => c.id !== optimisticId))
+        setCount((c) => c - 1)
+        setBody(trimmed)
         setPostError("Failed to post comment. Try again.")
       }
     } catch {
+      setComments((prev) => prev.filter((c) => c.id !== optimisticId))
+      setCount((c) => c - 1)
+      setBody(trimmed)
       setPostError("Network error. Check your connection.")
     }
     setPosting(false)
