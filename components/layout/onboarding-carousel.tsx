@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { ChevronRight, Map, Music, Share2, Zap } from "lucide-react"
 
 const SLIDES = [
@@ -30,20 +30,40 @@ const SLIDES = [
   },
 ]
 
+const LS_KEY = "cadenz-onboarding-done"
+const SS_KEY = "cadenz-onboarding-seen"
+
 interface Props {
   userId: string
 }
 
-export function OnboardingCarousel({ userId }: Props) {
+export function OnboardingCarousel({ userId: _ }: Props) {
+  // null = not yet determined (avoids hydration flash)
+  const [visible, setVisible] = useState<boolean | null>(null)
   const [slide, setSlide] = useState(0)
-  const [closing, setClosing] = useState(false)
 
-  async function finish() {
-    setClosing(true)
-    await fetch("/api/profile/onboarding", { method: "POST" })
+  useEffect(() => {
+    // Already permanently dismissed or seen this session → never show
+    if (localStorage.getItem(LS_KEY) || sessionStorage.getItem(SS_KEY)) {
+      setVisible(false)
+      return
+    }
+    // First clean open this session — show once and mark session as seen
+    sessionStorage.setItem(SS_KEY, "1")
+    setVisible(true)
+  }, [])
+
+  function dismiss(permanent: boolean) {
+    setVisible(false)
+    if (permanent) {
+      localStorage.setItem(LS_KEY, "1")
+      // Best-effort DB sync — fire and forget; not awaited so no navigation block
+      fetch("/api/profile/onboarding", { method: "POST" }).catch(() => {})
+    }
   }
 
-  if (closing) return null
+  // Not determined yet — render nothing to avoid hydration mismatch
+  if (visible === null || !visible) return null
 
   const current = SLIDES[slide]
   const Icon = current.icon
@@ -75,21 +95,30 @@ export function OnboardingCarousel({ userId }: Props) {
 
         {/* CTA */}
         <button
-          onClick={() => (isLast ? finish() : setSlide((s) => s + 1))}
-          className="w-full flex items-center justify-center gap-2 bg-wave text-white font-semibold rounded-xl py-3.5 hover:bg-wave-dark transition-colors"
+          onClick={() => (isLast ? dismiss(true) : setSlide((s) => s + 1))}
+          className="w-full flex items-center justify-center gap-2 bg-wave text-white font-semibold rounded-xl py-3.5 hover:bg-wave/80 transition-colors"
         >
           {isLast ? "Start composing" : "Next"}
           {!isLast && <ChevronRight size={18} />}
         </button>
 
-        {!isLast && (
+        {/* Skip / Don't ask again */}
+        <div className="flex items-center justify-center gap-4 mt-4">
+          {!isLast && (
+            <button
+              onClick={() => dismiss(false)}
+              className="text-xs text-muted hover:text-ink transition-colors"
+            >
+              Skip
+            </button>
+          )}
           <button
-            onClick={finish}
-            className="w-full text-center text-xs text-muted mt-4 hover:text-ink transition-colors"
+            onClick={() => dismiss(true)}
+            className="text-xs text-muted hover:text-ink transition-colors"
           >
-            Skip tutorial
+            Don&apos;t show again
           </button>
-        )}
+        </div>
       </div>
     </div>
   )
