@@ -6,6 +6,7 @@ import Link from "next/link"
 import { Heart, MessageCircle, UserPlus, Bell, Users, Music2 } from "lucide-react"
 import { timeAgo } from "@/lib/utils"
 import { MarkNotificationsRead } from "./mark-read"
+import { PushNudgeBanner } from "@/components/push-nudge-banner"
 
 export const metadata = { title: "Notifications" }
 
@@ -29,15 +30,18 @@ export default async function NotificationsPage() {
   const session = await auth()
   if (!session?.user?.id) redirect("/login")
 
-  const notifications = await db.notification.findMany({
-    where: { userId: session.user.id },
-    orderBy: { createdAt: "desc" },
-    take: 40,
-    include: {
-      actor: { select: { name: true, image: true, profile: { select: { username: true } } } },
-      activity: { select: { id: true, title: true } },
-    },
-  })
+  const [hasPushSub, notifications] = await Promise.all([
+    db.pushSubscription.count({ where: { userId: session.user.id } }).then((n) => n > 0),
+    db.notification.findMany({
+      where: { userId: session.user.id },
+      orderBy: { createdAt: "desc" },
+      take: 40,
+      include: {
+        actor: { select: { name: true, image: true, profile: { select: { username: true } } } },
+        activity: { select: { id: true, title: true } },
+      },
+    }),
+  ])
 
   // For ENSEMBLE_SESSION notifications, find the active session so we can link directly to it
   const sessionNotifEnsembleIds = notifications
@@ -57,6 +61,9 @@ export default async function NotificationsPage() {
 
       {/* Mark all read client-side on mount */}
       <MarkNotificationsRead />
+
+      {/* Nudge to enable push when user has notifications but no subscription */}
+      {!hasPushSub && notifications.length > 0 && <PushNudgeBanner />}
 
       {notifications.length === 0 ? (
         <div className="flex flex-col items-center gap-3 py-20 text-center">

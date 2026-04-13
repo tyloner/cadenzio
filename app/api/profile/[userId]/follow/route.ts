@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
+import { sendPush } from "@/lib/push"
 
 export async function POST(
   _req: NextRequest,
@@ -39,12 +40,21 @@ export async function POST(
     })
 
     // Replace any existing FOLLOW notif from this actor so it surfaces as new
-    await db.notification.deleteMany({
-      where: { actorId: session.user.id, userId: followingId, type: "FOLLOW" },
-    })
+    const [, actor] = await Promise.all([
+      db.notification.deleteMany({
+        where: { actorId: session.user.id, userId: followingId, type: "FOLLOW" },
+      }),
+      db.user.findUnique({ where: { id: session.user.id }, select: { name: true } }),
+    ])
     await db.notification.create({
       data: { userId: followingId, actorId: session.user.id, type: "FOLLOW" },
     })
+
+    sendPush(followingId, {
+      title: "New follower",
+      body: `${actor?.name ?? "Someone"} started following you`,
+      url: `/notifications`,
+    }).catch(() => {})
 
     return NextResponse.json({ following: true })
   } catch (err) {
