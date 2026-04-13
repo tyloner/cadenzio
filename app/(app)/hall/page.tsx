@@ -1,7 +1,9 @@
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { redirect } from "next/navigation"
+import { Suspense } from "react"
 import { LeaderboardView } from "@/components/hall/leaderboard-view"
+import HallLoading from "./loading"
 
 export const metadata = { title: "Hall of the Great" }
 
@@ -110,15 +112,17 @@ export default async function HallPage() {
   }))
 
   return (
-    <LeaderboardView
-      allTime={allTime}
-      weekly={weekly}
-      currentUserId={userId}
-      myAllTimeRank={myAllTimeRank}
-      myWeeklyRank={myWeeklyRank}
-      myProfile={myProfile ? { totalActivities: myProfile.totalActivities, totalDistance: myProfile.totalDistance, username: myProfile.username } : null}
-      myWeeklyCount={myWeeklyCount}
-      myWeeklyDistance={myWeeklyDistance}
-    />
+    <Suspense fallback={<HallLoading />}>
+      <LeaderboardView
+        allTime={allTime}
+        weekly={weekly}
+        currentUserId={userId}
+        myAllTimeRank={myAllTimeRank}
+        myWeeklyRank={myWeeklyRank}
+        myProfile={myProfile ? { totalActivities: myProfile.totalActivities, totalDistance: myProfile.totalDistance, username: myProfile.username } : null}
+        myWeeklyCount={myWeeklyCount}
+        myWeeklyDistance={myWeeklyDistance}
+      />
+    </Suspense>
   )
 }

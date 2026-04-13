@@ -37,6 +37,8 @@ interface FullActivity {
 interface Props {
   activity: FullActivity
   currentUserId: string | null
+  currentUserName?: string | null
+  currentUserImage?: string | null
   isLiked: boolean
   units?: "metric" | "imperial"
   revealChallenge?: string | null
@@ -50,7 +52,7 @@ const GENRE_COLORS: Record<string, string> = {
   electronic: "bg-pink-100 text-pink-700",
 }
 
-export function ActivityDetail({ activity, currentUserId, isLiked: initialLiked, units = "metric", revealChallenge }: Props) {
+export function ActivityDetail({ activity, currentUserId, currentUserName, currentUserImage, isLiked: initialLiked, units = "metric", revealChallenge }: Props) {
   const router = useRouter()
   const t = useT()
   const isOwner = currentUserId === activity.user.id
@@ -330,6 +332,8 @@ export function ActivityDetail({ activity, currentUserId, isLiked: initialLiked,
       <CommentsSection
         activityId={activity.id}
         currentUserId={currentUserId}
+        currentUserName={currentUserName}
+        currentUserImage={currentUserImage}
         initialCount={activity._count.comments}
       />
     </div>

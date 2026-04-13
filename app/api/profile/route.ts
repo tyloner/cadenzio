@@ -16,7 +16,7 @@ export async function PATCH(req: NextRequest) {
       data.bio = bio.trim()
     }
     if (country !== undefined) {
-      data.country = typeof country === "string" ? country.slice(0, 2).toUpperCase() : null
+      data.country = typeof country === "string" && country.length > 0 ? country.slice(0, 100) : null
     }
     if (Array.isArray(musicalInterests)) {
       data.musicalInterests = (musicalInterests as unknown[]).filter((i) => typeof i === "string").slice(0, 10)

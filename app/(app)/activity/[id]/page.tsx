@@ -82,6 +82,8 @@ export default async function ActivityPage({
     <ActivityDetail
       activity={activity}
       currentUserId={session?.user?.id ?? null}
+      currentUserName={session?.user?.name ?? null}
+      currentUserImage={session?.user?.image ?? null}
       isLiked={activity.likes.length > 0}
       units={units}
       revealChallenge={reveal ?? null}

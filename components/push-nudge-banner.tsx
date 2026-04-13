@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Bell, X } from "lucide-react"
 
 function urlBase64ToUint8Array(base64String: string) {
@@ -11,21 +11,23 @@ function urlBase64ToUint8Array(base64String: string) {
 }
 
 export function PushNudgeBanner() {
-  const [status, setStatus] = useState<"idle" | "loading" | "done" | "denied" | "unsupported">("idle")
+  const [supported, setSupported] = useState<boolean | null>(null) // null = not yet determined
+  const [status, setStatus] = useState<"idle" | "loading" | "done" | "denied">("idle")
   const [dismissed, setDismissed] = useState(false)
 
-  if (dismissed || status === "done") return null
-  if (typeof window !== "undefined" && !("PushManager" in window)) return null
+  useEffect(() => {
+    setSupported("serviceWorker" in navigator && "PushManager" in window)
+  }, [])
+
+  // Haven't checked yet (SSR / first paint) — render nothing to avoid hydration mismatch
+  if (supported === null || !supported || dismissed || status === "done") return null
 
   async function enable() {
-    if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
-      setStatus("unsupported"); return
-    }
     setStatus("loading")
     try {
       const keyRes = await fetch("/api/push/subscribe")
       const { publicKey } = await keyRes.json()
-      if (!publicKey) { setStatus("unsupported"); return }
+      if (!publicKey) { setSupported(false); return }
 
       const reg = await navigator.serviceWorker.ready
       const permission = await Notification.requestPermission()

@@ -16,10 +16,12 @@ interface Comment {
 interface Props {
   activityId: string
   currentUserId: string | null
+  currentUserName?: string | null
+  currentUserImage?: string | null
   initialCount: number
 }
 
-export function CommentsSection({ activityId, currentUserId, initialCount }: Props) {
+export function CommentsSection({ activityId, currentUserId, currentUserName, currentUserImage, initialCount }: Props) {
   const [comments, setComments] = useState<Comment[]>([])
   const [open, setOpen] = useState(false)
   const [body, setBody] = useState("")
@@ -59,7 +61,7 @@ export function CommentsSection({ activityId, currentUserId, initialCount }: Pro
       id: optimisticId,
       body: trimmed,
       createdAt: new Date().toISOString(),
-      user: { name: null, image: null, profile: null },
+      user: { name: currentUserName ?? null, image: currentUserImage ?? null, profile: null },
     }
     setComments((prev) => [...prev, optimistic])
     setCount((c) => c + 1)
