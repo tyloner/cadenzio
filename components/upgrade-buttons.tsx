@@ -9,24 +9,38 @@ interface Props {
 
 export function UpgradeButtons({ userId: _ }: Props) {
   const [loading, setLoading] = useState<"monthly" | "annual" | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   async function startCheckout(plan: "monthly" | "annual") {
     setLoading(plan)
-    const res = await fetch("/api/billing/checkout", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ plan }),
-    })
-    if (res.ok) {
-      const { url } = await res.json()
-      window.location.href = url
-    } else {
+    setError(null)
+    try {
+      const res = await fetch("/api/billing/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan }),
+      })
+      if (res.ok) {
+        const { url } = await res.json()
+        window.location.href = url
+      } else {
+        setError("Could not start checkout. Please try again.")
+      }
+    } catch {
+      setError("Network error. Check your connection and try again.")
+    } finally {
       setLoading(null)
     }
   }
 
   return (
     <div className="space-y-3">
+      {error && (
+        <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-center">
+          {error}
+        </p>
+      )}
+
       <button
         onClick={() => startCheckout("annual")}
         disabled={!!loading}

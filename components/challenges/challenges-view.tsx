@@ -115,7 +115,7 @@ export function ChallengesView({ levels, levelData, totalActivities, uniqueScale
                   {level.requirement ? (
                     <p className="text-xs text-muted mt-0.5">
                       {level.challengeId && !isRevealed && status === "locked"
-                        ? `🔒 Revealed at ${levels.find(l => l.challengeId === level.challengeId)?.revealAt ?? "?"} compositions`
+                        ? `🔒 ${levels.find(l => l.challengeId === level.challengeId)?.revealAt != null ? `Revealed at ${levels.find(l => l.challengeId === level.challengeId)!.revealAt} compositions` : "Keep composing to unlock"}`
                         : challengeDescription(level.challengeId as ChallengeId) || `${level.requirement.compositions} compositions`
                       }
                     </p>

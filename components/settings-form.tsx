@@ -41,28 +41,33 @@ export function SettingsForm({ profile, tier, userEmail, userName }: Props) {
   async function save() {
     setSaving(true)
     setSaveError(null)
-    const res = await fetch("/api/profile", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ bio, country, musicalInterests: interests, username, units, language }),
-    })
-    setSaving(false)
-    if (!res.ok) {
-      const { error } = await res.json()
-      setSaveError(error ?? t("error.generic"))
-      return
+    try {
+      const res = await fetch("/api/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bio, country, musicalInterests: interests, username, units, language }),
+      })
+      if (!res.ok) {
+        const { error } = await res.json().catch(() => ({}))
+        setSaveError(error ?? t("error.generic"))
+        return
+      }
+      const data = await res.json()
+      if (data.username) setUsername(data.username)
+      // Persist lang in cookie and reload so the whole app switches
+      document.cookie = `${LANG_COOKIE}=${language};path=/;max-age=31536000;SameSite=Lax`
+      setSaved(true)
+      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
+      saveTimeoutRef.current = setTimeout(() => {
+        setSaved(false)
+        // Reload only if language changed
+        if (language !== currentLang) window.location.reload()
+      }, 800)
+    } catch {
+      setSaveError(t("error.generic"))
+    } finally {
+      setSaving(false)
     }
-    const data = await res.json()
-    if (data.username) setUsername(data.username)
-    // Persist lang in cookie and reload so the whole app switches
-    document.cookie = `${LANG_COOKIE}=${language};path=/;max-age=31536000;SameSite=Lax`
-    setSaved(true)
-    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current)
-    saveTimeoutRef.current = setTimeout(() => {
-      setSaved(false)
-      // Reload only if language changed
-      if (language !== currentLang) window.location.reload()
-    }, 800)
   }
 
   return (
@@ -259,12 +264,17 @@ function DeleteAccountSection() {
 
   async function deleteAccount() {
     setDeleting(true)
-    const res = await fetch("/api/user", { method: "DELETE" })
-    if (res.ok) {
-      window.location.href = "/"
-    } else {
-      setDeleting(false)
+    try {
+      const res = await fetch("/api/user", { method: "DELETE" })
+      if (res.ok) {
+        window.location.href = "/"
+      } else {
+        setConfirming(false)
+      }
+    } catch {
       setConfirming(false)
+    } finally {
+      setDeleting(false)
     }
   }
 

@@ -21,6 +21,7 @@ interface Props {
   myWeeklyRank: number | null
   myProfile: { totalActivities: number; totalDistance: number; username: string } | null
   myWeeklyCount: number
+  myWeeklyDistance: number
 }
 
 const RANK_STYLES = [
@@ -79,7 +80,7 @@ function LeaderboardRow({ entry, rank, currentUserId, units }: {
   )
 }
 
-export function LeaderboardView({ allTime, weekly, currentUserId, myAllTimeRank, myWeeklyRank, myProfile, myWeeklyCount }: Props) {
+export function LeaderboardView({ allTime, weekly, currentUserId, myAllTimeRank, myWeeklyRank, myProfile, myWeeklyCount, myWeeklyDistance }: Props) {
   const [tab, setTab] = useState<"alltime" | "weekly">("alltime")
   const units = "metric"
 
@@ -155,7 +156,7 @@ export function LeaderboardView({ allTime, weekly, currentUserId, myAllTimeRank,
               </div>
               <div className="text-right">
                 <p className="text-sm font-bold text-ink">{tab === "alltime" ? myProfile.totalActivities : myWeeklyCount}</p>
-                <p className="text-xs text-muted">{formatDistance(tab === "alltime" ? myProfile.totalDistance : 0, units)}</p>
+                <p className="text-xs text-muted">{formatDistance(tab === "alltime" ? myProfile.totalDistance : myWeeklyDistance, units)}</p>
               </div>
             </div>
           </div>

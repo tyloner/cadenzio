@@ -37,8 +37,19 @@ export default async function NotificationsPage() {
       actor: { select: { name: true, image: true, profile: { select: { username: true } } } },
       activity: { select: { id: true, title: true } },
     },
-    // ensembleId is on the model — returned automatically
   })
+
+  // For ENSEMBLE_SESSION notifications, find the active session so we can link directly to it
+  const sessionNotifEnsembleIds = notifications
+    .filter((n) => n.type === "ENSEMBLE_SESSION" && n.ensembleId)
+    .map((n) => n.ensembleId!)
+  const activeSessions = sessionNotifEnsembleIds.length > 0
+    ? await db.ensembleSession.findMany({
+        where: { ensembleId: { in: sessionNotifEnsembleIds }, status: { in: ["LOBBY", "ACTIVE"] } },
+        select: { id: true, ensembleId: true },
+      })
+    : []
+  const activeSessionMap = new Map(activeSessions.map((s) => [s.ensembleId, s.id]))
 
   return (
     <div className="px-4 py-6">
@@ -58,7 +69,12 @@ export default async function NotificationsPage() {
           {notifications.map((n) => {
             const { icon: Icon, color, bg } = TYPE_ICON[n.type]
             const label = TYPE_LABEL[n.type]
-            const href = n.ensembleId
+            const activeSessionId = n.type === "ENSEMBLE_SESSION" && n.ensembleId
+              ? activeSessionMap.get(n.ensembleId)
+              : undefined
+            const href = activeSessionId
+              ? `/ensemble/${n.ensembleId}/session/${activeSessionId}`
+              : n.ensembleId
               ? `/ensemble/${n.ensembleId}`
               : n.activity
                 ? `/activity/${n.activity.id}`
@@ -98,7 +114,7 @@ export default async function NotificationsPage() {
                       <span className="text-muted"> · {n.activity.title}</span>
                     )}
                   </p>
-                  {n.body && (
+                  {n.body && n.type !== "ENSEMBLE_INVITE" && n.type !== "ENSEMBLE_SESSION" && (
                     <p className="text-xs text-muted mt-0.5 line-clamp-1">&ldquo;{n.body}&rdquo;</p>
                   )}
                   <p className="text-xs text-muted mt-0.5">{timeAgo(n.createdAt)}</p>

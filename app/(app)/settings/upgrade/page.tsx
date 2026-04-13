@@ -116,7 +116,7 @@ export default async function UpgradePage() {
       ) : (
         <div className="space-y-3">
           <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-700 text-center">
-            Stripe not configured yet — add price IDs to .env to enable payments.
+            Payments are not available yet. Please check back soon.
           </div>
           <button
             disabled

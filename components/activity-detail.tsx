@@ -74,6 +74,7 @@ export function ActivityDetail({ activity, currentUserId, isLiked: initialLiked,
   // Owner: delete
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   async function toggleLike() {
     if (liking) return
@@ -126,13 +127,19 @@ export function ActivityDetail({ activity, currentUserId, isLiked: initialLiked,
   async function toggleVisibility() {
     setTogglingVisibility(true)
     const next = !isPublic
-    const res = await fetch(`/api/activities/${activity.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ isPublic: next }),
-    })
-    if (res.ok) setIsPublic(next)
-    setTogglingVisibility(false)
+    try {
+      const res = await fetch(`/api/activities/${activity.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isPublic: next }),
+      })
+      if (res.ok) setIsPublic(next)
+      // On failure: leave isPublic unchanged — the toggle visually reverts automatically
+    } catch {
+      // Network error: state unchanged, user can retry
+    } finally {
+      setTogglingVisibility(false)
+    }
   }
 
   async function deleteActivity() {
@@ -301,11 +308,20 @@ export function ActivityDetail({ activity, currentUserId, isLiked: initialLiked,
           )}
 
           <button
-            onClick={() => navigator.share?.({ title, url: window.location.href })}
+            onClick={async () => {
+              const url = window.location.href
+              if (navigator.share) {
+                await navigator.share({ title, url }).catch(() => {})
+              } else {
+                await navigator.clipboard.writeText(url).catch(() => {})
+                setCopied(true)
+                setTimeout(() => setCopied(false), 2000)
+              }
+            }}
             className={`flex items-center gap-2 text-sm font-medium text-muted hover:text-wave transition-colors ${isOwner ? "" : "ml-auto"}`}
           >
             <Share2 size={18} />
-            {t("activity.share")}
+            {copied ? "Copied!" : t("activity.share")}
           </button>
         </div>
       </div>

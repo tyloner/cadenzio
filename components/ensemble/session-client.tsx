@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { MapPin, Users, Play, CheckCircle, Clock, Loader2, Radio, LogOut, Square, X } from "lucide-react"
-import { INSTRUMENT_CONFIG, type InstrumentName, type ScaleName } from "@/lib/music-engine/scales"
+import { INSTRUMENT_CONFIG, type InstrumentName, type ScaleName, type GenreName } from "@/lib/music-engine/scales"
 
 const INSTRUMENTS: InstrumentName[] = ["piano", "violin", "synth", "drums"]
 const MAX_SECONDS = 120
@@ -56,12 +56,15 @@ export function EnsembleSessionClient({
   const [instrument, setInstrument] = useState<InstrumentName>("piano")
   const [scale, setScale] = useState<ScaleName>((scales[0] ?? "major") as ScaleName)
   const [startingNote, setStartingNote] = useState("C4")
+  const [genre, setGenre] = useState<GenreName>("classical")
 
   const [timeLeft, setTimeLeft] = useState(MAX_SECONDS)
   const [recording, setRecording] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [startError, setStartError] = useState("")
+  const [submitError, setSubmitError] = useState("")
+  const [geoError, setGeoError] = useState("")
 
   // Wrap / Exit / Leave-lobby dialogs
   const [confirmWrap, setConfirmWrap] = useState(false)
@@ -82,6 +85,7 @@ export function EnsembleSessionClient({
   const instrumentRef = useRef<InstrumentName>("piano")
   const scaleRef = useRef<ScaleName>((scales[0] ?? "major") as ScaleName)
   const startingNoteRef = useRef("C4")
+  const genreRef = useRef<GenreName>("classical")
 
   // Stable ref to submitTrack / leaveSession so intervals always call the latest version
   const submitTrackRef = useRef<() => Promise<void>>(async () => {})
@@ -93,6 +97,7 @@ export function EnsembleSessionClient({
   useEffect(() => { instrumentRef.current = instrument }, [instrument])
   useEffect(() => { scaleRef.current = scale }, [scale])
   useEffect(() => { startingNoteRef.current = startingNote }, [startingNote])
+  useEffect(() => { genreRef.current = genre }, [genre])
 
   // Restore any GPS points saved to localStorage (connectivity-loss resilience)
   useEffect(() => {
@@ -170,7 +175,15 @@ export function EnsembleSessionClient({
           }
         }
       },
-      () => { /* ignore errors */ },
+        (err) => {
+        if (err.code === err.PERMISSION_DENIED) {
+          setGeoError("Location access denied. Please enable it in your browser settings to participate.")
+        } else if (err.code === err.POSITION_UNAVAILABLE) {
+          setGeoError("Location unavailable. Make sure GPS is enabled on your device.")
+        } else {
+          setGeoError("Could not get your location. Please check your device settings.")
+        }
+      },
       { enableHighAccuracy: true, maximumAge: 2000 }
     )
     return () => { if (watchRef.current !== null) navigator.geolocation.clearWatch(watchRef.current) }
@@ -203,10 +216,16 @@ export function EnsembleSessionClient({
   // Cancel session (host, in lobby)
   async function cancelSession() {
     setCancelling(true)
-    await fetch(`/api/ensemble/${ensembleId}/session/${sessionId}/start`, {
-      method: "DELETE",
-    }).catch(() => {})
-    router.push(`/ensemble/${ensembleId}`)
+    try {
+      const res = await fetch(`/api/ensemble/${ensembleId}/session/${sessionId}/start`, { method: "DELETE" })
+      if (res.ok) router.push(`/ensemble/${ensembleId}`)
+      else setStartError("Failed to cancel session. Please try again.")
+    } catch {
+      setStartError("Network error. Please try again.")
+    } finally {
+      setCancelling(false)
+      setConfirmCancel(false)
+    }
   }
 
   // ── Submit track (normal time-up or early) ────────────────────────────────
@@ -218,7 +237,6 @@ export function EnsembleSessionClient({
     setSubmitting(true)
 
     const points = gpsRef.current
-    const genre = "classical"
 
     const res = await fetch(`/api/ensemble/${ensembleId}/session/${sessionId}/submit`, {
       method: "POST",
@@ -228,7 +246,7 @@ export function EnsembleSessionClient({
         instrument: instrumentRef.current,
         scale: scaleRef.current,
         startingNote: startingNoteRef.current,
-        genre,
+        genre: genreRef.current,
       }),
     })
 
@@ -236,11 +254,17 @@ export function EnsembleSessionClient({
     if (res.ok) {
       submittedRef.current = true
       setSubmitted(true)
+      setSubmitError("")
       try { localStorage.removeItem(gpsStorageKey(sessionId)) } catch { /* ignore */ }
       const data = await res.json()
       if (data.allSubmitted) {
         router.push(`/ensemble/${ensembleId}/session/${sessionId}/result`)
       }
+    } else {
+      // Restore recording state so the user can try again
+      setSubmitError("Could not submit your track. Please try again.")
+      setRecording(true)
+      recordingRef.current = true
     }
   }
 
@@ -263,7 +287,7 @@ export function EnsembleSessionClient({
           instrument: instrumentRef.current,
           scale: scaleRef.current,
           startingNote: startingNoteRef.current,
-          genre: "classical",
+          genre: genreRef.current,
         }),
       })
     } catch { /* best-effort */ }
@@ -294,7 +318,7 @@ export function EnsembleSessionClient({
           instrument: instrumentRef.current,
           scale: scaleRef.current,
           startingNote: startingNoteRef.current,
-          genre: "classical",
+          genre: genreRef.current,
         }),
       })
     } catch { /* best-effort */ }
@@ -313,7 +337,7 @@ export function EnsembleSessionClient({
           instrument: instrumentRef.current,
           scale: scaleRef.current,
           startingNote: startingNoteRef.current,
-          genre: "classical",
+          genre: genreRef.current,
         })
         navigator.sendBeacon?.(
           `/api/ensemble/${ensembleId}/session/${sessionId}/leave`,
@@ -473,6 +497,11 @@ export function EnsembleSessionClient({
             </div>
           </div>
         )}
+        {submitError && (
+          <p className="text-sm text-red-500 text-center bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+            {submitError}
+          </p>
+        )}
         {submitting && (
           <div className="mt-auto flex items-center justify-center gap-2 text-muted py-4">
             <Loader2 size={18} className="animate-spin" /> Submitting…
@@ -553,6 +582,20 @@ export function EnsembleSessionClient({
         </div>
       </div>
 
+      {/* Genre */}
+      <div className="mb-4">
+        <p className="text-xs font-semibold text-ink mb-1.5">Genre</p>
+        <select
+          value={genre}
+          onChange={(e) => setGenre(e.target.value as GenreName)}
+          className="w-full border border-border rounded-xl px-3 py-2.5 text-sm outline-none focus:border-wave bg-surface capitalize"
+        >
+          {(["classical", "blues", "jazz", "ambient", "electronic"] as GenreName[]).map((g) => (
+            <option key={g} value={g}>{g}</option>
+          ))}
+        </select>
+      </div>
+
       {/* Scale + note */}
       <div className="grid grid-cols-2 gap-3 mb-6">
         <div>
@@ -580,6 +623,13 @@ export function EnsembleSessionClient({
           </select>
         </div>
       </div>
+
+      {/* Geolocation error */}
+      {geoError && (
+        <div className="mb-4 bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-600">
+          {geoError}
+        </div>
+      )}
 
       {/* Proximity status */}
       <div className={`rounded-xl p-4 mb-6 flex items-center gap-3 ${

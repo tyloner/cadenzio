@@ -24,16 +24,20 @@ export function FeedLoadMore({ initialCursor, units }: Props) {
   const [activities, setActivities] = useState<FeedActivity[]>([])
   const [cursor, setCursor] = useState<string | null>(initialCursor)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(false)
 
   const loadMore = useCallback(async () => {
     if (!cursor || loading) return
     setLoading(true)
+    setError(false)
     try {
       const res = await fetch(`/api/feed?cursor=${encodeURIComponent(cursor)}`)
-      if (!res.ok) return
+      if (!res.ok) { setError(true); return }
       const data: { activities: FeedActivity[]; nextCursor: string | null } = await res.json()
       setActivities((prev) => [...prev, ...data.activities])
       setCursor(data.nextCursor)
+    } catch {
+      setError(true)
     } finally {
       setLoading(false)
     }
@@ -48,7 +52,13 @@ export function FeedLoadMore({ initialCursor, units }: Props) {
         <ActivityCard key={a.id} activity={toCard(a)} units={units} />
       ))}
 
-      {cursor && (
+      {error && (
+        <p className="text-sm text-red-500 text-center py-3">
+          Could not load more.{" "}
+          <button onClick={loadMore} className="underline font-medium">Retry</button>
+        </p>
+      )}
+      {cursor && !error && (
         <button
           onClick={loadMore}
           disabled={loading}

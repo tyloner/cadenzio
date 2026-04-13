@@ -9,6 +9,7 @@ import { FollowButton } from "@/components/follow-button"
 interface Result {
   username: string
   totalActivities: number
+  isFollowing: boolean
   user: { id: string; name: string | null; image: string | null }
 }
 
@@ -34,7 +35,10 @@ export default function SearchPage() {
         const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`, { signal: abortRef.current.signal })
         if (res.ok) { setResults(await res.json()); setSearched(true) }
       } catch (e) {
-        if (e instanceof Error && e.name !== "AbortError") setResults([])
+        if (e instanceof Error && e.name !== "AbortError") {
+          setResults([])
+          setSearched(true)
+        }
       } finally {
         setLoading(false)
       }
@@ -87,7 +91,7 @@ export default function SearchPage() {
                     </p>
                   </div>
                 </Link>
-                <FollowButton userId={r.user.id} initialFollowing={false} compact />
+                <FollowButton userId={r.user.id} initialFollowing={r.isFollowing} compact />
               </div>
             </li>
           ))}

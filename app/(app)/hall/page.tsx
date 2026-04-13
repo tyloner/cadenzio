@@ -97,6 +97,8 @@ export default async function HallPage() {
       totalDistance: number
     }[]
 
+  const myWeeklyGroup = weeklyGroups.find((g) => g.userId === userId)
+  const myWeeklyDistance = myWeeklyGroup?._sum.distanceM ?? 0
   const aheadWeekly = weeklyGroups.filter((g) => g._count.id > myWeeklyCount).length
   const myWeeklyRank = myWeeklyCount > 0 ? aheadWeekly + 1 : null
 
@@ -116,6 +118,7 @@ export default async function HallPage() {
       myWeeklyRank={myWeeklyRank}
       myProfile={myProfile ? { totalActivities: myProfile.totalActivities, totalDistance: myProfile.totalDistance, username: myProfile.username } : null}
       myWeeklyCount={myWeeklyCount}
+      myWeeklyDistance={myWeeklyDistance}
     />
   )
 }

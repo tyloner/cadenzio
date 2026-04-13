@@ -7,13 +7,13 @@ import { GoogleSignInButton } from "@/components/auth/google-sign-in-button"
 export const metadata = { title: "Sign in" }
 
 const ERROR_MESSAGES: Record<string, string> = {
-  OAuthSignin:        "Could not start Google sign-in. Check your Client ID.",
-  OAuthCallback:      "Google returned an error. Check your redirect URI.",
-  OAuthCreateAccount: "Could not create account. Check database connection.",
-  Callback:           "Sign-in callback failed.",
-  OAuthAccountNotLinked: "Email already used with a different provider.",
-  AccessDenied:       "Access denied. If you set the Google app to 'Testing', add your email as a test user in Google Console → OAuth consent screen → Test users.",
-  default:            "Something went wrong. Try again.",
+  OAuthSignin:           "Could not connect to Google. Please try again.",
+  OAuthCallback:         "Google sign-in was interrupted. Please try again.",
+  OAuthCreateAccount:    "Could not create your account. Please try again.",
+  Callback:              "Sign-in failed. Please try again.",
+  OAuthAccountNotLinked: "This email is already linked to a different sign-in method.",
+  AccessDenied:          "Access denied. Please contact support if you believe this is an error.",
+  default:               "Something went wrong. Please try again.",
 }
 
 export default async function LoginPage({
@@ -40,8 +40,7 @@ export default async function LoginPage({
 
           {errorMsg && (
             <div className="mb-4 bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-600">
-              <strong>Error:</strong> {errorMsg}
-              {error && <span className="block text-xs text-red-400 mt-0.5">Code: {error}</span>}
+              {errorMsg}
             </div>
           )}
 
