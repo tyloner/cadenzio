@@ -5,6 +5,7 @@ import { sendPush } from "@/lib/push"
 
 // POST /api/ensemble/[id]/session — create a new lobby session (owner only)
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   const userId = session.user.id
@@ -57,29 +58,25 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const hostName = actor?.name ?? "The host"
   const ensembleName = ensemble.name
 
+  // Delete any stale session-start notifications from this host for this ensemble,
+  // then create fresh ones per-member. Upsert cannot be used here because the unique
+  // constraint [actorId, type, activityId, ensembleId] is identical across all members,
+  // causing each upsert to overwrite the previous member's notification.
+  await db.notification.deleteMany({
+    where: { actorId: userId, type: "ENSEMBLE_SESSION", ensembleId },
+  })
   await Promise.allSettled([
-    // In-app notifications
-    ...nonOwnerMembers.map((m) =>
-      db.notification.upsert({
-        where: {
-          actorId_type_activityId_ensembleId: {
-            actorId: userId,
-            type: "ENSEMBLE_SESSION",
-            activityId: null as unknown as string,
-            ensembleId,
-          },
-        },
-        create: {
-          userId: m.userId,
-          actorId: userId,
-          type: "ENSEMBLE_SESSION",
-          ensembleId,
-          body: ensembleName,
-          isRead: false,
-        },
-        update: { userId: m.userId, isRead: false, createdAt: new Date() },
-      })
-    ),
+    db.notification.createMany({
+      data: nonOwnerMembers.map((m) => ({
+        userId: m.userId,
+        actorId: userId,
+        type: "ENSEMBLE_SESSION" as const,
+        ensembleId,
+        body: ensembleName,
+        isRead: false,
+      })),
+      skipDuplicates: true,
+    }),
     // Push notifications
     ...nonOwnerMembers.map((m) =>
       sendPush(m.userId, {
@@ -91,4 +88,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   ])
 
   return NextResponse.json(newSession, { status: 201 })
+  } catch (err) {
+    console.error("[POST /api/ensemble/[id]/session]", err)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
 }

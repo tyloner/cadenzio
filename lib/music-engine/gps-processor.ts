@@ -179,6 +179,16 @@ export function processGpsToNotes(
     timeAccum += stepDuration
   }
 
+  // Fallback: if GPS had identical timestamps (dt=0) or other edge case produced nothing,
+  // generate a minimal ascending melody so compositions are never empty.
+  if (events.length === 0) {
+    const fallbackIdx = startIndex >= 0 ? startIndex : Math.floor(scaleNotes.length / 2)
+    for (let i = 0; i < 8; i++) {
+      const idx = Math.min(fallbackIdx + i, scaleNotes.length - 1)
+      events.push({ note: scaleNotes[idx], duration: "4n", time: i * 0.5, velocity: 0.5, track: "lead" })
+    }
+  }
+
   return events
 }
 
@@ -193,6 +203,7 @@ export function estimateAvgBpm(points: GpsPoint[]): number {
     const dt = (points[i].timestamp - points[i - 1].timestamp) / 1000
     if (dt > 0) speeds.push(dist / dt)
   }
+  if (speeds.length === 0) return 80
   const avg = speeds.reduce((a, b) => a + b, 0) / speeds.length
   return Math.round(60 + Math.min(avg / 4, 1) * 100)
 }
