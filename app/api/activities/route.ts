@@ -5,6 +5,7 @@ import { processGpsToNotes, estimateAvgBpm } from "@/lib/music-engine/gps-proces
 import { computeStyleAnalysis } from "@/lib/music-engine/style-tagger"
 import { FREE_LIMITS } from "@/lib/constants"
 import { checkNewReveal } from "@/lib/levels"
+import { checkHiddenNoteCapture } from "@/app/api/hidden-note/route"
 import type { ScaleName, GenreName, InstrumentName } from "@/lib/music-engine/scales"
 import type { Prisma } from "@prisma/client"
 
@@ -234,5 +235,14 @@ async function finaliseActivity(
     })
   }
 
-  return NextResponse.json({ activityId, newlyRevealedChallenge: newlyRevealedChallenge ?? null }, { status: 201 })
+  // Check if the GPS track captured this week's hidden note
+  const act2 = await db.activity.findUnique({ where: { id: activityId }, select: { gpsTrack: true } })
+  const gpsPoints = (act2?.gpsTrack ?? []) as { lat: number; lng: number }[]
+  const capturedNoteKey = await checkHiddenNoteCapture(userId, activityId, gpsPoints).catch(() => null)
+
+  return NextResponse.json({
+    activityId,
+    newlyRevealedChallenge: newlyRevealedChallenge ?? null,
+    capturedNoteKey: capturedNoteKey ?? null,
+  }, { status: 201 })
 }

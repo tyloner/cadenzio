@@ -69,6 +69,8 @@ model User {
   sessions              Session[]
   stravaConnection      StravaConnection?
   subscription          Subscription?
+  hiddenNotes           HiddenNote[]
+  noteCaptures          HiddenNoteCapture[]
 }
 
 model Profile {
@@ -114,6 +116,7 @@ model Activity {
   composition       Composition?
   likes             Like[]
   notifications     Notification[]
+  noteCapture       HiddenNoteCapture?
 
   @@index([userId, startedAt(sort: Desc)])
 }
@@ -291,6 +294,32 @@ model EnsembleLobbyLocation {
   user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([sessionId, userId])
+}
+
+model HiddenNote {
+  id        String             @id @default(cuid())
+  userId    String
+  weekKey   String             // "2026-W15"
+  noteKey   String             // "C3", "F#3", etc.
+  lat       Float
+  lng       Float
+  expiresAt DateTime
+  capture   HiddenNoteCapture?
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, weekKey])
+  @@index([userId])
+}
+
+model HiddenNoteCapture {
+  id         String     @id @default(cuid())
+  userId     String
+  noteId     String     @unique
+  activityId String     @unique
+  capturedAt DateTime   @default(now())
+  note       HiddenNote @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activity   Activity   @relation(fields: [activityId], references: [id], onDelete: Cascade)
 }
 
 enum ActivitySource {

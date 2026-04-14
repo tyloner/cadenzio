@@ -1,7 +1,8 @@
 "use client"
 
-import { Award, Lock, CheckCircle, ChevronRight } from "lucide-react"
+import { Award, Lock, CheckCircle, ChevronRight, BookOpen } from "lucide-react"
 import { type Level, type LevelProgressData, evaluateLevels, LEVELS, challengeDescription, type ChallengeId } from "@/lib/levels"
+import { COLLECTIBLES, type Collectible } from "@/lib/collectibles"
 
 interface Props {
   levels: Level[]
@@ -11,6 +12,9 @@ interface Props {
   uniqueInstruments: number
   revealedChallenges: string[]
   badges: string[]
+  collectedNoteKeys: string[]
+  activeCollectible: Collectible
+  activeNoteCaptured: boolean
 }
 
 function ConditionPill({ label, current, required, met, isOr, orMet }: {
@@ -28,7 +32,19 @@ function ConditionPill({ label, current, required, met, isOr, orMet }: {
   )
 }
 
-export function ChallengesView({ levels, levelData, totalActivities, uniqueScales, uniqueInstruments, revealedChallenges, badges }: Props) {
+const RARITY_LABEL: Record<string, string> = {
+  common: "Common",
+  rare: "Rare",
+  legendary: "Legendary",
+}
+
+const RARITY_BADGE: Record<string, string> = {
+  common: "bg-slate-200 text-slate-600",
+  rare: "bg-violet-100 text-violet-700",
+  legendary: "bg-yellow-100 text-yellow-700",
+}
+
+export function ChallengesView({ levels, levelData, totalActivities, uniqueScales, uniqueInstruments, revealedChallenges, badges, collectedNoteKeys, activeCollectible, activeNoteCaptured }: Props) {
   const currentIdx = levels.indexOf(levelData.current)
 
   return (
@@ -145,7 +161,7 @@ export function ChallengesView({ levels, levelData, totalActivities, uniqueScale
 
       {/* Badges earned */}
       {badges.length > 0 && (
-        <div>
+        <div className="mb-8">
           <h2 className="text-sm font-semibold text-ink mb-3">Badges Earned</h2>
           <div className="flex flex-wrap gap-2">
             {badges.map((badge) => {
@@ -160,6 +176,77 @@ export function ChallengesView({ levels, levelData, totalActivities, uniqueScale
           </div>
         </div>
       )}
+
+      {/* The Lost Octave — collectible album */}
+      <div>
+        <div className="flex items-center gap-2 mb-1">
+          <BookOpen size={18} className="text-wave" />
+          <h2 className="text-sm font-semibold text-ink">The Lost Octave</h2>
+          <span className="ml-auto text-xs text-muted">{collectedNoteKeys.length}/{COLLECTIBLES.length}</span>
+        </div>
+        <p className="text-xs text-muted mb-4 leading-relaxed">
+          Each week a hidden note appears within 1km of your last walk. Record a route that passes within 50m to collect it.
+        </p>
+
+        {/* Active this week */}
+        <div className={`rounded-xl border-2 p-4 mb-4 ${
+          activeNoteCaptured
+            ? `${activeCollectible.bgColor} ${activeCollectible.borderColor}`
+            : "border-wave/40 bg-wave/5"
+        }`}>
+          <div className="flex items-center gap-3">
+            <span className="text-3xl">{activeCollectible.emoji}</span>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-0.5">
+                <p className="text-sm font-bold text-ink">{activeCollectible.name}</p>
+                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${RARITY_BADGE[activeCollectible.rarity]}`}>
+                  {RARITY_LABEL[activeCollectible.rarity]}
+                </span>
+                {activeNoteCaptured && <CheckCircle size={14} className="text-green-600 flex-shrink-0" />}
+              </div>
+              <p className="text-xs text-muted">{activeCollectible.key} · {activeCollectible.description}</p>
+            </div>
+          </div>
+          <p className="text-xs font-medium mt-3">
+            {activeNoteCaptured
+              ? <span className="text-green-600">Collected this week ✓</span>
+              : <span className="text-wave">Active this week — go find it</span>
+            }
+          </p>
+        </div>
+
+        {/* Full album grid */}
+        <div className="grid grid-cols-3 gap-2">
+          {COLLECTIBLES.map((c) => {
+            const collected = collectedNoteKeys.includes(c.key)
+            const isActive = c.key === activeCollectible.key
+            return (
+              <div
+                key={c.key}
+                className={`rounded-xl border p-3 flex flex-col items-center gap-1 text-center transition-all ${
+                  collected
+                    ? `${c.bgColor} ${c.borderColor}`
+                    : isActive
+                    ? "border-wave/40 bg-wave/5"
+                    : "border-border bg-mist opacity-50"
+                }`}
+              >
+                <span className={`text-2xl ${!collected && !isActive ? "grayscale opacity-40" : ""}`}>
+                  {c.emoji}
+                </span>
+                <p className={`text-[11px] font-semibold leading-tight ${collected ? c.textColor : "text-muted"}`}>
+                  {collected ? c.name : c.key}
+                </p>
+                <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded-full ${
+                  collected ? RARITY_BADGE[c.rarity] : "bg-border text-muted"
+                }`}>
+                  {collected ? RARITY_LABEL[c.rarity] : isActive ? "This week" : "?"}
+                </span>
+              </div>
+            )
+          })}
+        </div>
+      </div>
     </div>
   )
 }
