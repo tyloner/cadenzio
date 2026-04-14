@@ -18,16 +18,21 @@ export async function GET(
 ) {
   const { id } = await params
 
-  const activity = await db.activity.findUnique({
-    where: { id, isPublic: true },
-    select: {
-      title: true,
-      distanceM: true,
-      durationSec: true,
-      user: { select: { name: true } },
-      composition: { select: { genre: true, scale: true, instrument: true, bpmAvg: true } },
-    },
-  })
+  let activity
+  try {
+    activity = await db.activity.findUnique({
+      where: { id, isPublic: true },
+      select: {
+        title: true,
+        distanceM: true,
+        durationSec: true,
+        user: { select: { name: true } },
+        composition: { select: { genre: true, scale: true, instrument: true, bpmAvg: true } },
+      },
+    })
+  } catch {
+    return new Response("Not found", { status: 404 })
+  }
 
   if (!activity) {
     return new Response("Not found", { status: 404 })
