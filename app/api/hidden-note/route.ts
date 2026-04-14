@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
 import { haversineDistance } from "@/lib/utils"
+import { sendPush } from "@/lib/push"
 import {
   getWeekKey,
   getWeekExpiry,
@@ -164,6 +165,13 @@ export async function checkHiddenNoteCapture(
   await db.hiddenNoteCapture.create({
     data: { userId, noteId: note.id, activityId },
   })
+
+  const collectible = COLLECTIBLES.find((c) => c.key === note.noteKey)
+  sendPush(userId, {
+    title: `${collectible?.emoji ?? "🎵"} Note collected!`,
+    body: `You found ${collectible?.name ?? note.noteKey} — added to your Lost Octave album.`,
+    url: "/challenges",
+  }).catch(() => {})
 
   return note.noteKey
 }

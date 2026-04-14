@@ -8,6 +8,14 @@ export interface GpsPoint {
   heading?: number | null  // device compass heading (degrees, 0=N) when available
 }
 
+export interface HiddenNoteBias {
+  /** MIDI note number of the hidden note to bias toward */
+  targetMidi: number
+  /** Lat/lng of the hidden note — used for distance gating */
+  lat: number
+  lng: number
+}
+
 export interface NoteEvent {
   note: number        // MIDI note number
   duration: string   // Tone.js duration string ("4n", "8n", etc.)
@@ -49,12 +57,18 @@ function seededRand(seed: number): () => number {
   }
 }
 
+// Distance at which bias starts (metres)
+const BIAS_START_M = 300
+// Distance at which bias is at full strength (metres)
+const BIAS_FULL_M  = 50
+
 export function processGpsToNotes(
   points: GpsPoint[],
   startingNote: string,
   scale: ScaleName,
   rhythmEnabled: boolean,
-  genre: GenreName = "classical"
+  genre: GenreName = "classical",
+  hiddenNoteBias?: HiddenNoteBias
 ): NoteEvent[] {
   if (points.length < 2) return []
 
@@ -161,6 +175,23 @@ export function processGpsToNotes(
     if (newIndex < 0) newIndex = Math.abs(newIndex)
     if (newIndex >= len) newIndex = 2 * (len - 1) - newIndex
     currentIndex = Math.max(0, Math.min(len - 1, newIndex))
+
+    // Hidden note warm/cold bias — nudge melody toward target MIDI when close
+    if (hiddenNoteBias) {
+      const distToNote = haversineDistance(curr.lat, curr.lng, hiddenNoteBias.lat, hiddenNoteBias.lng)
+      if (distToNote < BIAS_START_M) {
+        // Strength 0→1 as distance goes from BIAS_START_M→BIAS_FULL_M
+        const strength = Math.min(1, (BIAS_START_M - distToNote) / (BIAS_START_M - BIAS_FULL_M))
+        // Find closest scale index to the target MIDI
+        const targetIdx = scaleNotes.reduce((best, n, i) =>
+          Math.abs(n - hiddenNoteBias.targetMidi) < Math.abs(scaleNotes[best] - hiddenNoteBias.targetMidi) ? i : best, 0)
+        // Blend: at full strength always step toward target; at low strength just a nudge
+        if (rand() < strength) {
+          const dir = targetIdx > currentIndex ? 1 : targetIdx < currentIndex ? -1 : 0
+          currentIndex = Math.max(0, Math.min(scaleNotes.length - 1, currentIndex + dir))
+        }
+      }
+    }
 
     const note = scaleNotes[currentIndex]
     const { velocityMin, velocityMax } = genreConfig

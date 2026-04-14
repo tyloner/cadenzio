@@ -3,12 +3,20 @@
 import { useState, useEffect, useRef, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import dynamic from "next/dynamic"
-import { Square, Loader2, Music2, Navigation, Pause, Play, Trash2 } from "lucide-react"
+import { Square, Loader2, Music2, Navigation, Pause, Play, Trash2, Compass } from "lucide-react"
 import { haversineDistance, computeBearing, formatDuration, formatDistance } from "@/lib/utils"
 import { FREE_LIMITS } from "@/lib/constants"
 import type { GpsPoint } from "@/lib/music-engine/gps-processor"
 import { PreRecordSettings } from "./pre-record-settings"
 import { useT } from "@/components/layout/language-provider"
+
+type ClueRing = "hot" | "warm" | "cold" | "freezing"
+const CLUE_COLORS: Record<ClueRing, string> = {
+  hot:      "bg-red-100 text-red-700 border-red-300",
+  warm:     "bg-orange-100 text-orange-700 border-orange-300",
+  cold:     "bg-blue-100 text-blue-700 border-blue-300",
+  freezing: "bg-slate-100 text-slate-600 border-slate-300",
+}
 
 const RecordMap = dynamic(() => import("./record-map"), { ssr: false })
 
@@ -38,6 +46,13 @@ export function RecordScreen({ isPro, userId, units = "metric", usedSeconds = 0 
   const [error, setError]         = useState<string | null>(null)
   const [confirmDiscard, setConfirmDiscard] = useState(false)
 
+  // Hidden note clue
+  const [clueLabel, setClueLabel]   = useState<string | null>(null)
+  const [clueRing, setClueRing]     = useState<ClueRing | null>(null)
+  const [noteEmoji, setNoteEmoji]   = useState<string>("🎵")
+  const [noteCaptured, setNoteCaptured] = useState(false)
+  const clueThrottleRef = useRef(0)
+
   const watchIdRef          = useRef<number | null>(null)
   const timerRef            = useRef<ReturnType<typeof setInterval> | null>(null)
   const startTimeRef        = useRef<number>(0)        // wall-clock when last (re)started
@@ -58,6 +73,42 @@ export function RecordScreen({ isPro, userId, units = "metric", usedSeconds = 0 
   useEffect(() => { settingsRef.current = settings }, [settings])
   useEffect(() => { distanceRef.current = distance }, [distance])
   useEffect(() => { elapsedRef.current = elapsed },   [elapsed])
+
+  // Fetch hidden note status on mount (just to show emoji + whether already captured)
+  useEffect(() => {
+    fetch("/api/hidden-note")
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (!data?.available) return
+        if (data.captured) { setNoteCaptured(true); return }
+        setNoteEmoji(data.emoji ?? "🎵")
+        setClueLabel("A hidden note is nearby — find it on your walk")
+        setClueRing("cold")
+      })
+      .catch(() => {})
+  }, [])
+
+  // Update clue ring on GPS movement (throttled to once every 15s)
+  useEffect(() => {
+    if (points.length === 0) return
+    if (noteCaptured) return
+    const now = Date.now()
+    if (now - clueThrottleRef.current < 15_000) return
+    clueThrottleRef.current = now
+    const last = points[points.length - 1]
+    fetch("/api/hidden-note", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ lat: last.lat, lng: last.lng }),
+    })
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (!data?.available) return
+        if (data.captured) { setNoteCaptured(true); setClueLabel("Note collected!"); setClueRing("hot"); return }
+        if (data.clue) { setClueLabel(data.clue.label); setClueRing(data.clue.ring) }
+      })
+      .catch(() => {})
+  }, [points, noteCaptured])
 
   const remainingSeconds = isPro ? Infinity : Math.max(0, FREE_LIMITS.MAX_RECORDING_SECONDS - usedSeconds)
 
@@ -233,7 +284,8 @@ export function RecordScreen({ isPro, userId, units = "metric", usedSeconds = 0 
         }),
       })
       if (!res.ok) throw new Error("Save failed")
-      const { activityId, newlyRevealedChallenge } = await res.json()
+      const { activityId, newlyRevealedChallenge, capturedNoteKey } = await res.json()
+      if (capturedNoteKey) { setNoteCaptured(true) }
       router.push(newlyRevealedChallenge
         ? `/activity/${activityId}?reveal=${newlyRevealedChallenge}`
         : `/activity/${activityId}`)
@@ -324,12 +376,21 @@ export function RecordScreen({ isPro, userId, units = "metric", usedSeconds = 0 
         </div>
 
         {/* Genre badge */}
-        <div className="flex justify-center mb-5">
+        <div className="flex justify-center mb-3">
           <span className="flex items-center gap-2 text-xs font-medium text-wave bg-wave/10 px-3 py-1.5 rounded-full">
             <Music2 size={12} />
             {settings?.genre} · {settings?.scale?.replace("_", " ")} · {settings?.startingNote}
           </span>
         </div>
+
+        {/* Hidden note clue chip */}
+        {clueLabel && clueRing && (
+          <div className={`flex items-center gap-2 text-xs font-medium px-3 py-2 rounded-xl border mb-3 ${CLUE_COLORS[clueRing]}`}>
+            <span>{noteEmoji}</span>
+            <span className="flex-1">{noteCaptured ? "✓ Note collected!" : clueLabel}</span>
+            {!noteCaptured && <Compass size={13} className="flex-shrink-0 opacity-60" />}
+          </div>
+        )}
 
         {/* Free tier progress */}
         {!isPro && (
