@@ -61,7 +61,8 @@ export function processGpsToNotes(
   const rootMidi = noteNameToMidi(startingNote)
   const scaleNotes = buildScale(rootMidi, scale)
   const startIndex = scaleNotes.indexOf(rootMidi) ?? Math.floor(scaleNotes.length / 2)
-  const rhythmPattern = GENRE_CONFIG[genre].rhythmPattern
+  const genreConfig = GENRE_CONFIG[genre]
+  const rhythmPattern = genreConfig.rhythmPattern
   const rand = seededRand(Math.round(points[0].lat * 1000 + points[0].lng * 1000))
 
   const events: NoteEvent[] = []
@@ -71,8 +72,8 @@ export function processGpsToNotes(
   let rhythmCounter = 0
   let noteCount = 0
 
-  // Phrase shaping
-  const PHRASE_LENGTH = 8
+  // Phrase shaping — length varies per genre
+  const PHRASE_LENGTH = genreConfig.phraseLength
   let phraseDirection = 0
   let phraseSteps = 0
 
@@ -134,6 +135,10 @@ export function processGpsToNotes(
       if (delta < -180) delta += 360
       step = bearingDeltaToStep(delta, scaleNotes.length)
 
+      // Apply genre step scale and cap
+      step = Math.round(step * genreConfig.stepScale)
+      step = Math.max(-genreConfig.maxStep, Math.min(genreConfig.maxStep, step))
+
       // Minimum drift when going straight
       if (Math.abs(delta) < 8) {
         step += phraseDirection !== 0 ? phraseDirection : (rand() > 0.5 ? 1 : -1)
@@ -150,13 +155,16 @@ export function processGpsToNotes(
       step += phraseDirection * (3 + Math.floor(rand() * 3))
     }
 
-    currentIndex = Math.max(0, Math.min(scaleNotes.length - 1, currentIndex + step))
-    // Nudge away from range extremes
-    if (currentIndex <= 2) currentIndex += 3
-    if (currentIndex >= scaleNotes.length - 3) currentIndex -= 3
+    // Reflect off boundaries — natural bounce instead of hard nudge
+    let newIndex = currentIndex + step
+    const len = scaleNotes.length
+    if (newIndex < 0) newIndex = Math.abs(newIndex)
+    if (newIndex >= len) newIndex = 2 * (len - 1) - newIndex
+    currentIndex = Math.max(0, Math.min(len - 1, newIndex))
 
     const note = scaleNotes[currentIndex]
-    const velocity = Math.min(0.9, Math.max(0.3, 0.3 + speedMs * 0.12))
+    const { velocityMin, velocityMax } = genreConfig
+    const velocity = Math.min(velocityMax, Math.max(velocityMin, velocityMin + speedMs * 0.12))
     const stepDuration = speedMs < 1.0 ? 0.65 : speedMs < 2.0 ? 0.5 : 0.38
 
     events.push({ note, duration, time: timeAccum, velocity, track: "lead" })

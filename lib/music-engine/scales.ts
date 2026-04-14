@@ -40,13 +40,27 @@ export type RhythmPattern = {
 
 export const GENRE_CONFIG: Record<
   GenreName,
-  { scale: ScaleName; rhythm: boolean; rhythmPattern: RhythmPattern }
+  {
+    scale: ScaleName
+    rhythm: boolean
+    rhythmPattern: RhythmPattern
+    /** Multiplier applied to the bearing-derived step — controls melodic aggressiveness */
+    stepScale: number
+    /** Absolute cap on step size per GPS segment */
+    maxStep: number
+    /** How many notes form one phrase before direction resets */
+    phraseLength: number
+    /** Velocity range [min, max] — speed drives within this band */
+    velocityMin: number
+    velocityMax: number
+  }
 > = {
-  classical:  { scale: "major",    rhythm: false, rhythmPattern: { stride: 4, swing: false, velocityAccent: [1.0, 0.6, 0.8, 0.6] } },
-  blues:      { scale: "blues",    rhythm: true,  rhythmPattern: { stride: 3, swing: true,  velocityAccent: [1.0, 0.7, 0.9]       } },
-  jazz:       { scale: "dorian",   rhythm: true,  rhythmPattern: { stride: 4, swing: true,  velocityAccent: [1.0, 0.5, 0.8, 0.5]  } },
-  ambient:    { scale: "lydian",   rhythm: false, rhythmPattern: { stride: 8, swing: false, velocityAccent: [0.6]                  } },
-  electronic: { scale: "phrygian", rhythm: true,  rhythmPattern: { stride: 2, swing: false, velocityAccent: [1.0, 0.8, 1.0, 0.6]  } },
+  //                                                                              stepScale maxStep phrase  vel min  vel max
+  classical:  { scale: "major",    rhythm: false, rhythmPattern: { stride: 4, swing: false, velocityAccent: [1.0, 0.6, 0.8, 0.6] }, stepScale: 0.6, maxStep: 4,  phraseLength: 8,  velocityMin: 0.35, velocityMax: 0.85 },
+  blues:      { scale: "blues",    rhythm: true,  rhythmPattern: { stride: 3, swing: true,  velocityAccent: [1.0, 0.7, 0.9]       }, stepScale: 1.0, maxStep: 6,  phraseLength: 8,  velocityMin: 0.25, velocityMax: 0.95 },
+  jazz:       { scale: "dorian",   rhythm: true,  rhythmPattern: { stride: 4, swing: true,  velocityAccent: [1.0, 0.5, 0.8, 0.5]  }, stepScale: 1.2, maxStep: 8,  phraseLength: 6,  velocityMin: 0.30, velocityMax: 0.90 },
+  ambient:    { scale: "lydian",   rhythm: false, rhythmPattern: { stride: 8, swing: false, velocityAccent: [0.6]                  }, stepScale: 0.3, maxStep: 2,  phraseLength: 16, velocityMin: 0.15, velocityMax: 0.50 },
+  electronic: { scale: "phrygian", rhythm: true,  rhythmPattern: { stride: 2, swing: false, velocityAccent: [1.0, 0.8, 1.0, 0.6]  }, stepScale: 1.0, maxStep: 7,  phraseLength: 4,  velocityMin: 0.50, velocityMax: 1.00 },
 }
 
 export type InstrumentConfig = {
