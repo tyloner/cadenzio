@@ -78,6 +78,7 @@ export async function POST(
         title: "New comment",
         body: `${actor?.name ?? "Someone"}: "${body.trim().slice(0, 80)}"`,
         url: `/activity/${id}`,
+        tag: `comment-${id}`,
       }).catch(() => {})
     }
 

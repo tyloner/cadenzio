@@ -533,7 +533,7 @@ export function EnsembleSessionClient({
       {/* Cancel session confirmation modal (host) */}
       {confirmCancel && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 px-4 pb-8">
-          <div className="bg-surface rounded-2xl p-6 w-full max-w-sm shadow-xl">
+          <div className="bg-surface rounded-2xl p-6 pb-safe w-full max-w-sm shadow-xl">
             <h2 className="text-base font-bold text-ink mb-1">Cancel this session?</h2>
             <p className="text-sm text-muted mb-5">
               The session will be cancelled and members will be sent back to the ensemble page.

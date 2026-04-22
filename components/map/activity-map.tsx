@@ -39,7 +39,7 @@ function CenterButton({ points }: { points: [number, number][] }) {
 
 export default function ActivityMap({ points, progress }: Props) {
   const positions = points.map((p) => [p.lat, p.lng] as [number, number])
-  const center: [number, number] = positions.length > 0 ? positions[0] : [51.505, -0.09]
+  const center: [number, number] = positions.length > 0 ? positions[0] : [20, 0]
 
   const dotIndex =
     progress !== undefined && progress > 0 && positions.length > 1

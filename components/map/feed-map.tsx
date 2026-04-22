@@ -20,10 +20,11 @@ const GENRE_STROKE: Record<string, string> = {
   electronic: "#EC4899",
 }
 
-export default function FeedMap({ activities }: { activities: Activity[] }) {
-  const center: [number, number] = [51.505, -0.09]
+const WORLD_CENTER: [number, number] = [20, 0]
 
+export default function FeedMap({ activities }: { activities: Activity[] }) {
   const mapped = activities
+    .slice(0, 20) // cap render cost — caller may pass more
     .map((a) => {
       const track = a.gpsTrack as { lat: number; lng: number }[]
       if (!track || track.length < 2) return null
@@ -31,7 +32,8 @@ export default function FeedMap({ activities }: { activities: Activity[] }) {
     })
     .filter(Boolean) as (Activity & { positions: [number, number][] })[]
 
-  const firstCenter = mapped[0]?.positions[0] ?? center
+  // Centre on the most recent track; fall back to a neutral world view
+  const firstCenter = mapped[0]?.positions[0] ?? WORLD_CENTER
 
   return (
     <MapContainer

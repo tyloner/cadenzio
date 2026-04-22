@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
+    const appUrl = process.env.APP_URL ?? "http://localhost:3000"
     const checkout = await stripe.checkout.sessions.create({
       customer: customerId,
       mode: "subscription",

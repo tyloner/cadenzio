@@ -20,6 +20,8 @@ interface PushPayload {
   title: string
   body: string
   url?: string
+  /** Distinct tag so notifications stack in the tray rather than replacing each other */
+  tag?: string
 }
 
 /** Send a push notification to all subscriptions for a user. Silently drops expired/invalid subs. */

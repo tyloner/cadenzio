@@ -1,7 +1,14 @@
-const CACHE = "cadenz-v3"
+const CACHE = "cadenz-v4"
 
 // App shell routes to pre-cache on install
-const PRECACHE = ["/", "/dashboard", "/record", "/map", "/manifest.json"]
+const PRECACHE = ["/", "/manifest.json"]
+
+// Routes that carry user-specific content — never serve from cache to avoid
+// serving user A's data to user B after a session switch
+const PRIVATE_PREFIXES = [
+  "/dashboard", "/record", "/profile", "/ensemble",
+  "/map", "/hall", "/challenges", "/notifications", "/search", "/settings", "/activity",
+]
 
 self.addEventListener("install", (e) => {
   e.waitUntil(
@@ -25,7 +32,7 @@ self.addEventListener("fetch", (e) => {
   // Never intercept API or auth routes — always go to network
   if (url.pathname.startsWith("/api/")) return
 
-  // Static assets (_next/static): cache-first, they're already content-hashed by Next.js
+  // Static assets (_next/static): cache-first, content-hashed by Next.js
   if (url.pathname.startsWith("/_next/static/")) {
     e.respondWith(
       caches.match(e.request).then((cached) => {
@@ -42,8 +49,11 @@ self.addEventListener("fetch", (e) => {
     return
   }
 
-  // Navigation and page routes: stale-while-revalidate
-  // Respond immediately from cache (fast), then fetch fresh copy in the background
+  // Private routes — network-only, never risk stale session data
+  const isPrivate = PRIVATE_PREFIXES.some((p) => url.pathname.startsWith(p))
+  if (isPrivate) return
+
+  // Public pages (/, /login): stale-while-revalidate
   e.respondWith(
     caches.open(CACHE).then((cache) => {
       return cache.match(e.request).then((cached) => {
@@ -54,16 +64,15 @@ self.addEventListener("fetch", (e) => {
             }
             return res
           })
-          .catch(() => cached) // offline fallback
+          .catch(() => cached)
 
-        // Return cached version immediately if available, otherwise wait for network
         return cached ?? fetchPromise
       })
     })
   )
 })
 
-// Push notifications
+// Push notifications — use distinct tags so notifications stack in the tray
 self.addEventListener("push", (e) => {
   if (!e.data) return
   let payload
@@ -74,7 +83,7 @@ self.addEventListener("push", (e) => {
       icon: "/api/icon/192",
       badge: "/api/icon/96",
       data: { url: payload.url ?? "/dashboard" },
-      tag: "cadenzio-notification",
+      tag: payload.tag ?? "cadenzio-general",
       renotify: true,
     })
   )

@@ -1,12 +1,14 @@
 import { RecordScreen } from "@/components/record/record-screen"
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
+import { redirect } from "next/navigation"
 
 export const metadata = { title: "Record" }
 
 export default async function RecordPage() {
   const session = await auth()
-  const userId = session!.user!.id!
+  if (!session?.user?.id) redirect("/login")
+  const userId = session.user.id
   const [subscription, profile, usedSecondsResult] = await Promise.all([
     db.subscription.findUnique({ where: { userId }, select: { tier: true } }),
     db.profile.findUnique({ where: { userId }, select: { units: true } }),

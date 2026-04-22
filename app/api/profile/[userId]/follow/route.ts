@@ -54,6 +54,7 @@ export async function POST(
       title: "New follower",
       body: `${actor?.name ?? "Someone"} started following you`,
       url: `/notifications`,
+      tag: `follow-${session.user.id}`,
     }).catch(() => {})
 
     return NextResponse.json({ following: true })

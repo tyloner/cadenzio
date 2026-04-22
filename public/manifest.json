@@ -29,5 +29,6 @@
       "icons": [{ "src": "/api/icon/96", "sizes": "96x96", "type": "image/png" }]
     }
   ],
-  "categories": ["music", "fitness", "lifestyle"]
+  "categories": ["music", "fitness", "lifestyle"],
+  "scope": "/"
 }

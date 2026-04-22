@@ -47,6 +47,8 @@ export function ScurryingNotes() {
   useEffect(() => {
     // Skip the very first mount — only fire on actual navigation
     if (isFirst.current) { isFirst.current = false; return }
+    // Suppress during recording — GPS battery/performance sensitive screen
+    if (pathname === "/record") return
 
     const count = 2 + Math.floor(Math.random() * 2) // 2–3 notes
     setNotes(

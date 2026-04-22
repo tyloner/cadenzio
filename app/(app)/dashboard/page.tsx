@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth"
 import { db } from "@/lib/db"
+import { redirect } from "next/navigation"
 import { ActivityCard } from "@/components/activity-card"
 import { FeedLoadMore } from "@/components/feed-load-more"
 import { EmptyFeed } from "@/components/empty-feed"
@@ -11,9 +12,16 @@ export const metadata = { title: "Feed" }
 
 const PAGE_SIZE = 20
 
+const activityInclude = {
+  user: { select: { name: true, image: true } },
+  composition: { select: { genre: true, scale: true, audioUrl: true, instrument: true } },
+  _count: { select: { likes: true, comments: true } },
+} as const
+
 export default async function DashboardPage() {
   const session = await auth()
-  const myId = session!.user!.id!
+  if (!session?.user?.id) redirect("/login")
+  const myId = session.user.id as string
 
   const lang = await getServerLang()
   const [following, viewerProfile] = await Promise.all([
@@ -21,15 +29,10 @@ export default async function DashboardPage() {
     db.profile.findUnique({ where: { userId: myId }, select: { units: true } }),
   ])
   const units = (viewerProfile?.units ?? "metric") as "metric" | "imperial"
-  const followingIds = following.map((f: { followingId: string }) => f.followingId)
+  const followingIds = following.map((f) => f.followingId)
 
-  const activityInclude = {
-    user: { select: { name: true, image: true } },
-    composition: { select: { genre: true, scale: true, audioUrl: true, instrument: true } },
-    _count: { select: { likes: true, comments: true } },
-  } as const
-
-  const excludeIds = [myId, ...followingIds]
+  // Cap to 100 to avoid Postgres IN clause size issues on large follow counts
+  const excludeIds = [myId, ...followingIds.slice(0, 100)]
 
   // First page of feed + discover candidates — both in parallel
   const [rawActivities, discover] = await Promise.all([

@@ -74,6 +74,7 @@ export async function POST(
       title: "Ensemble invitation",
       body: `${actor?.name ?? "Someone"} added you to "${ensemble.name}"`,
       url: `/ensemble/${ensembleId}`,
+      tag: `ensemble-invite-${ensembleId}`,
     }).catch(() => {})
 
     return NextResponse.json(member, { status: 201 })

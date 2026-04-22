@@ -3,6 +3,7 @@ import { db } from "@/lib/db"
 import { SettingsForm } from "@/components/settings-form"
 import { PushSubscribe } from "@/components/push-subscribe"
 import { CheckCircle2 } from "lucide-react"
+import { redirect } from "next/navigation"
 
 export const metadata = { title: "Settings" }
 
@@ -12,7 +13,8 @@ export default async function SettingsPage({
   searchParams: Promise<{ upgraded?: string }>
 }) {
   const session = await auth()
-  const userId = session!.user!.id!
+  if (!session?.user?.id) redirect("/login")
+  const userId = session.user.id
 
   const [profile, subscription, { upgraded }] = await Promise.all([
     db.profile.findUnique({ where: { userId }, select: { username: true, bio: true, country: true, musicalInterests: true, isPublic: true, units: true, language: true } }),

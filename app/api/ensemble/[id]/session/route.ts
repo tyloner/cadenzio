@@ -83,6 +83,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         title: `🎵 ${ensembleName} — session starting!`,
         body: `${hostName} has started a session. Tap to join and accept.`,
         url: sessionUrl,
+        tag: `ensemble-session-${ensembleId}`,
       }).catch(() => {})
     ),
   ])

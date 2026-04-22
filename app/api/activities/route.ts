@@ -18,7 +18,19 @@ export async function GET(req: NextRequest) {
       where: { userId: session.user.id },
       orderBy: { startedAt: "desc" },
       take: 100,
-      include: { composition: true },
+      include: {
+        composition: {
+          select: {
+            genre: true,
+            scale: true,
+            instrument: true,
+            audioUrl: true,
+            bpmAvg: true,
+            startingNote: true,
+            // midiEvents intentionally omitted — large JSON not needed for list views
+          },
+        },
+      },
     })
     return NextResponse.json(activities)
   } catch (err) {

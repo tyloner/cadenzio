@@ -5,26 +5,34 @@ import { MapContainer, TileLayer, Polyline, useMap } from "react-leaflet"
 import type { GpsPoint } from "@/lib/music-engine/gps-processor"
 import "leaflet/dist/leaflet.css"
 
+const LONDON_DEFAULT: [number, number] = [51.505, -0.09]
+
 function AutoCenter({ points }: { points: GpsPoint[] }) {
   const map = useMap()
   useEffect(() => {
-    if (points.length > 0) {
-      const last = points[points.length - 1]
-      map.panTo([last.lat, last.lng], { animate: true, duration: 0.5 })
+    if (points.length === 0) return
+    const last = points[points.length - 1]
+    const target: [number, number] = [last.lat, last.lng]
+    const bounds = map.getBounds()
+    // Only pan if the latest point is outside the current viewport
+    if (!bounds.contains(target)) {
+      map.panTo(target, { animate: true, duration: 0.5 })
     }
   }, [points, map])
   return null
 }
 
 export default function RecordMap({ points }: { points: GpsPoint[] }) {
+  // initialCenter is fixed on first render so MapContainer never remounts
+  const initialCenter = useRef<[number, number]>(
+    points.length > 0 ? [points[0].lat, points[0].lng] : LONDON_DEFAULT
+  )
+
   const positions = points.map((p) => [p.lat, p.lng] as [number, number])
-  const center: [number, number] = points.length > 0
-    ? [points[points.length - 1].lat, points[points.length - 1].lng]
-    : [51.505, -0.09]
 
   return (
     <MapContainer
-      center={center}
+      center={initialCenter.current}
       zoom={16}
       style={{ height: "100%", width: "100%" }}
       zoomControl={false}

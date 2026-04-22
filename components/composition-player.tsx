@@ -148,7 +148,7 @@ export function CompositionPlayer({ midiEvents, bpmAvg, genre, instrument = "pia
 
     const knownInstrument = (instrument in INSTRUMENT_CONFIG)
       ? instrument as InstrumentName
-      : (() => { console.warn(`Unknown instrument "${instrument}", falling back to synth`); return "synth" as InstrumentName })()
+      : "synth" as InstrumentName
 
     const instConfig = INSTRUMENT_CONFIG[knownInstrument]
     const oscType    = GENRE_OSC[genre as GenreName] ?? "triangle"

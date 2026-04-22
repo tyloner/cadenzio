@@ -142,11 +142,30 @@ export async function POST(req: Request) {
  * Called from the activity submit pipeline.
  * Returns the noteKey if captured, null otherwise.
  */
+// Max plausible walking/jogging speed in m/s (~50 km/h — filters GPS teleportation)
+const MAX_SPEED_MS = 14
+
 export async function checkHiddenNoteCapture(
   userId: string,
   activityId: string,
-  gpsTrack: { lat: number; lng: number }[],
+  gpsTrack: { lat: number; lng: number; timestamp?: number }[],
 ): Promise<string | null> {
+  // Plausibility check: reject any consecutive pair that implies superhuman speed.
+  // This prevents GPS spoofing from teleporting to the note location.
+  if (gpsTrack.length >= 2) {
+    for (let i = 1; i < gpsTrack.length; i++) {
+      const prev = gpsTrack[i - 1]
+      const curr = gpsTrack[i]
+      if (prev.timestamp && curr.timestamp) {
+        const dtSec = (curr.timestamp - prev.timestamp) / 1000
+        if (dtSec > 0) {
+          const distM = haversineDistance(prev.lat, prev.lng, curr.lat, curr.lng)
+          if (distM / dtSec > MAX_SPEED_MS) return null // reject entire track
+        }
+      }
+    }
+  }
+
   const weekKey = getWeekKey()
   const note = await db.hiddenNote.findUnique({
     where: { userId_weekKey: { userId, weekKey } },
@@ -171,6 +190,7 @@ export async function checkHiddenNoteCapture(
     title: `${collectible?.emoji ?? "🎵"} Note collected!`,
     body: `You found ${collectible?.name ?? note.noteKey} — added to your Lost Octave album.`,
     url: "/challenges",
+    tag: `note-capture-${note.noteKey}`,
   }).catch(() => {})
 
   return note.noteKey
